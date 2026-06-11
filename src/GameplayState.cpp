@@ -31,7 +31,6 @@ GameplayState::GameplayState(GameContext& context)
     projectileShape_.setRadius(5.0f);
     projectileShape_.setOrigin({5.0f, 5.0f});
     projectileShape_.setFillColor(sf::Color(255, 230, 90));
-    setupTargetEntities();
 }
 
 void GameplayState::onEnter() {}
@@ -43,7 +42,7 @@ void GameplayState::handleEvent(const sf::Event& event)
         player_.dodgeRoll(readMovementInput());
     } else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         const sf::Vector2i mousePixel{event.mouseButton.x, event.mouseButton.y};
-        const sf::Vector2f mouseWorld = context_.window->mapPixelToCoords(mousePixel);
+        const sf::Vector2f mouseWorld = context_.window->mapPixelToCoords(mousePixel, cameraView());
         fireProjectile(mouseWorld);
     }
 }
@@ -57,10 +56,10 @@ void GameplayState::update(float deltaSeconds)
 
 void GameplayState::render(sf::RenderTarget& target)
 {
+    const sf::View previousView = target.getView();
+    target.setView(cameraView());
+
     map_.render(target);
-    for (const auto& entity : targetEntities_) {
-        target.draw(entity);
-    }
     for (const auto& projectile : projectiles_) {
         projectileShape_.setRadius(projectile.radius);
         projectileShape_.setOrigin({projectile.radius, projectile.radius});
@@ -68,6 +67,8 @@ void GameplayState::render(sf::RenderTarget& target)
         target.draw(projectileShape_);
     }
     player_.render(target);
+
+    target.setView(previousView);
 }
 
 bool GameplayState::allowsUnderlyingUpdate() const { return false; }
@@ -112,8 +113,7 @@ void GameplayState::updateProjectiles(float deltaSeconds)
             };
 
             return projectile.lifetimeSeconds <= 0.0f
-                || map_.collides(bounds)
-                || projectileHitsEntity(bounds);
+                || map_.collides(bounds);
         }),
         projectiles_.end());
 }
@@ -134,40 +134,31 @@ void GameplayState::fireProjectile(sf::Vector2f target)
     projectiles_.push_back(projectile);
 }
 
-void GameplayState::setupTargetEntities()
+sf::View GameplayState::cameraView() const
 {
-    sf::RectangleShape target({28.0f, 28.0f});
-    target.setOrigin(target.getSize() / 2.0f);
-    target.setPosition({map_.tileSize() * 18.0f, map_.tileSize() * 9.0f});
-    target.setFillColor(sf::Color(210, 85, 85));
-    targetEntities_.push_back(target);
+    const sf::Vector2u windowSize = context_.window->getSize();
+    sf::View view(sf::FloatRect(0.0f, 0.0f, static_cast<float>(windowSize.x), static_cast<float>(windowSize.y)));
+    view.setCenter(player_.position());
+    return view;
 }
 
 sf::Vector2f GameplayState::readMovementInput() const
 {
     sf::Vector2f direction{};
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
         direction.y -= 1.0f;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
         direction.y += 1.0f;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
         direction.x -= 1.0f;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
         direction.x += 1.0f;
     }
 
     return normalized(direction);
 }
-
-bool GameplayState::projectileHitsEntity(const sf::FloatRect& bounds) const
-{
-    return std::any_of(targetEntities_.begin(), targetEntities_.end(), [&bounds](const sf::RectangleShape& entity) {
-        return entity.getGlobalBounds().intersects(bounds);
-    });
-}
-
 }

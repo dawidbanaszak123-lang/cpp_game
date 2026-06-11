@@ -15,7 +15,7 @@ Game::Game()
     window_.setFramerateLimit(60);
     context_.window = &window_;
     context_.states = states_.get();
-    showMainMenu();
+    startGameplay();
 }
 
 Game::~Game() = default;
@@ -54,7 +54,7 @@ void Game::update(float deltaSeconds)
 
 void Game::render()
 {
-    window_.clear(sf::Color(18, 18, 22));
+    window_.clear(sf::Color::Black);
     if (states_) {
         states_->render(window_);
     }

@@ -4,9 +4,9 @@ namespace dungeon {
 
 Player::Player()
 {
-    body_.setSize({24.0f, 24.0f});
+    body_.setSize({28.0f, 28.0f});
     body_.setOrigin(body_.getSize() / 2.0f);
-    body_.setFillColor(sf::Color(80, 180, 255));
+    body_.setFillColor(sf::Color(60, 160, 255));
 }
 
 void Player::update(float deltaSeconds)
@@ -21,7 +21,7 @@ void Player::update(float deltaSeconds)
         invincibilityTimer_ -= deltaSeconds;
     }
 
-    body_.setFillColor(hasInvincibilityFrames() ? sf::Color(255, 230, 90) : sf::Color(80, 180, 255));
+    body_.setFillColor(sf::Color(60, 160, 255));
 }
 
 void Player::render(sf::RenderTarget& target)
