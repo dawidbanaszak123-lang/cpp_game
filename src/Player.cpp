@@ -1,6 +1,22 @@
 #include "Player.hpp"
 
+#include <cmath>
+
 namespace dungeon {
+
+namespace {
+
+[[nodiscard]] sf::Vector2f normalized(sf::Vector2f vector)
+{
+    const float length = std::sqrt(vector.x * vector.x + vector.y * vector.y);
+    if (length <= 0.0f) {
+        return {};
+    }
+
+    return {vector.x / length, vector.y / length};
+}
+
+}
 
 Player::Player()
 {
@@ -19,6 +35,9 @@ void Player::update(float deltaSeconds)
     }
     if (invincibilityTimer_ > 0.0f) {
         invincibilityTimer_ -= deltaSeconds;
+    }
+    for (const auto& weapon : rangedWeapons_) {
+        weapon->update(deltaSeconds);
     }
 
     body_.setFillColor(sf::Color(60, 160, 255));
@@ -97,7 +116,27 @@ bool Player::hasInvincibilityFrames() const
 
 void Player::meleeAttack(sf::Vector2f) {}
 
-void Player::fireRangedWeapon(sf::Vector2f) {}
+void Player::fireRangedWeapon(sf::Vector2f target)
+{
+    (void)tryFireRangedWeapon(target);
+}
+
+std::optional<Projectile> Player::tryFireRangedWeapon(sf::Vector2f target)
+{
+    if (rangedWeapons_.empty()) {
+        return std::nullopt;
+    }
+
+    // Shooting uses the same vector math as enemy aiming: subtracting the
+    // player position from the mouse world position gives a vector that points
+    // exactly from the player toward the cursor. Normalizing makes it length 1.
+    const sf::Vector2f direction = normalized(target - position());
+    if (direction.x == 0.0f && direction.y == 0.0f) {
+        return std::nullopt;
+    }
+
+    return rangedWeapons_.front()->tryShoot(position(), direction);
+}
 
 void Player::equipMeleeWeapon(std::unique_ptr<IMeleeWeapon> weapon)
 {

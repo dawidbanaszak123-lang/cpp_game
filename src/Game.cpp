@@ -15,7 +15,7 @@ Game::Game()
     window_.setFramerateLimit(60);
     context_.window = &window_;
     context_.states = states_.get();
-    startGameplay();
+    showMainMenu();
 }
 
 Game::~Game() = default;

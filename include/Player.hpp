@@ -3,9 +3,11 @@
 #include "IMeleeWeapon.hpp"
 #include "IRangedWeapon.hpp"
 #include "Character.hpp"
+#include "Projectile.hpp"
 
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace dungeon {
@@ -29,6 +31,7 @@ public:
     [[nodiscard]] bool hasInvincibilityFrames() const;
     void meleeAttack(sf::Vector2f target);
     void fireRangedWeapon(sf::Vector2f target);
+    [[nodiscard]] std::optional<Projectile> tryFireRangedWeapon(sf::Vector2f target);
     void equipMeleeWeapon(std::unique_ptr<IMeleeWeapon> weapon);
     void addRangedWeapon(std::unique_ptr<IRangedWeapon> weapon);
 
