@@ -30,6 +30,11 @@ struct RoomRect {
     };
 }
 
+[[nodiscard]] sf::IntRect toIntRect(RoomRect room)
+{
+    return {room.left, room.top, room.width, room.height};
+}
+
 [[nodiscard]] sf::Vector2i roomCenterTile(int gridX, int gridY)
 {
     const RoomRect room = roomRect(gridX, gridY);
@@ -51,6 +56,9 @@ void TileMap::generateRoom(std::size_t, std::size_t)
         static_cast<std::size_t>(mapHeight),
         std::vector<int>(static_cast<std::size_t>(mapWidth), 0));
     tiles_.assign(static_cast<std::size_t>(mapHeight), std::vector<int>(static_cast<std::size_t>(mapWidth), 0));
+    rooms_.clear();
+    doorTiles_.clear();
+    activeDoorTiles_.clear();
 
     const auto carveRect = [&walkable](int left, int top, int width, int height) {
         for (int row = top; row < top + height; ++row) {
@@ -60,8 +68,9 @@ void TileMap::generateRoom(std::size_t, std::size_t)
         }
     };
 
-    const auto carveRoom = [&carveRect](int gridX, int gridY) {
+    const auto carveRoom = [this, &carveRect](int gridX, int gridY) {
         const RoomRect room = roomRect(gridX, gridY);
+        rooms_.push_back(toIntRect(room));
         carveRect(room.left, room.top, room.width, room.height);
     };
 
@@ -98,6 +107,43 @@ void TileMap::generateRoom(std::size_t, std::size_t)
     carveVerticalCorridor(2, 0, 1);
     carveVerticalCorridor(2, 1, 2);
 
+    const auto addVerticalDoor = [this](int column, int centerY, std::size_t roomIndex) {
+        for (int row = centerY - corridorWidth / 2; row < centerY + corridorWidth / 2; ++row) {
+            doorTiles_.push_back({column, row, roomIndex});
+        }
+    };
+
+    const auto addHorizontalDoor = [this](int centerX, int row, std::size_t roomIndex) {
+        for (int column = centerX - corridorWidth / 2; column < centerX + corridorWidth / 2; ++column) {
+            doorTiles_.push_back({column, row, roomIndex});
+        }
+    };
+
+    const auto addHorizontalConnectionDoors = [&addVerticalDoor](int leftRoomX, int roomY, int rightRoomX, std::size_t leftRoomIndex, std::size_t rightRoomIndex) {
+        const RoomRect leftRoom = roomRect(leftRoomX, roomY);
+        const RoomRect rightRoom = roomRect(rightRoomX, roomY);
+        const int centerY = roomCenterTile(leftRoomX, roomY).y;
+        addVerticalDoor(leftRoom.left + leftRoom.width, centerY, leftRoomIndex);
+        addVerticalDoor(rightRoom.left - 1, centerY, rightRoomIndex);
+    };
+
+    const auto addVerticalConnectionDoors = [&addHorizontalDoor](int roomX, int lowerRoomY, int upperRoomY, std::size_t lowerRoomIndex, std::size_t upperRoomIndex) {
+        const RoomRect lowerRoom = roomRect(roomX, lowerRoomY);
+        const RoomRect upperRoom = roomRect(roomX, upperRoomY);
+        const int centerX = roomCenterTile(roomX, lowerRoomY).x;
+        addHorizontalDoor(centerX, lowerRoom.top - 1, lowerRoomIndex);
+        addHorizontalDoor(centerX, upperRoom.top + upperRoom.height, upperRoomIndex);
+    };
+
+    addHorizontalConnectionDoors(0, 0, 1, 0, 1);
+    addHorizontalConnectionDoors(1, 0, 2, 1, 2);
+    addHorizontalConnectionDoors(1, 1, 2, 3, 4);
+    addHorizontalConnectionDoors(2, 2, 3, 5, 6);
+
+    addVerticalConnectionDoors(1, 0, 1, 1, 3);
+    addVerticalConnectionDoors(2, 0, 1, 2, 4);
+    addVerticalConnectionDoors(2, 1, 2, 4, 5);
+
     for (int row = 0; row < mapHeight; ++row) {
         for (int column = 0; column < mapWidth; ++column) {
             if (walkable[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)] == 1) {
@@ -130,7 +176,13 @@ void TileMap::render(sf::RenderTarget& target) const
     for (std::size_t row = 0; row < tiles_.size(); ++row) {
         for (std::size_t column = 0; column < tiles_[row].size(); ++column) {
             tile.setPosition(static_cast<float>(column) * tileSize_, static_cast<float>(row) * tileSize_);
-            tile.setFillColor(tiles_[row][column] == 1 ? sf::Color::White : sf::Color::Black);
+            if (tiles_[row][column] == 1) {
+                tile.setFillColor(sf::Color::White);
+            } else if (tiles_[row][column] == 2) {
+                tile.setFillColor(sf::Color::Red);
+            } else {
+                tile.setFillColor(sf::Color::Black);
+            }
             tile.setOutlineThickness(0.0f);
             target.draw(tile);
         }
@@ -164,6 +216,98 @@ sf::Vector2f TileMap::spawnPosition() const
     };
 }
 
+std::optional<std::size_t> TileMap::roomAt(sf::Vector2f position) const
+{
+    const int column = static_cast<int>(position.x / tileSize_);
+    const int row = static_cast<int>(position.y / tileSize_);
+
+    for (std::size_t index = 0; index < rooms_.size(); ++index) {
+        if (rooms_[index].contains(column, row)) {
+            return index;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<std::size_t> TileMap::roomContaining(const sf::FloatRect& bounds) const
+{
+    constexpr float edgeEpsilon = 0.001f;
+    const int left = static_cast<int>(bounds.left / tileSize_);
+    const int right = static_cast<int>((bounds.left + bounds.width - edgeEpsilon) / tileSize_);
+    const int top = static_cast<int>(bounds.top / tileSize_);
+    const int bottom = static_cast<int>((bounds.top + bounds.height - edgeEpsilon) / tileSize_);
+
+    for (std::size_t index = 0; index < rooms_.size(); ++index) {
+        const sf::IntRect& room = rooms_[index];
+        if (left >= room.left && right < room.left + room.width &&
+            top >= room.top && bottom < room.top + room.height) {
+            return index;
+        }
+    }
+
+    return std::nullopt;
+}
+
+sf::Vector2f TileMap::roomCenter(std::size_t roomIndex) const
+{
+    if (roomIndex >= rooms_.size()) {
+        return spawnPosition();
+    }
+
+    const sf::IntRect room = rooms_[roomIndex];
+    return {
+        (static_cast<float>(room.left) + static_cast<float>(room.width) * 0.5f + 0.5f) * tileSize_,
+        (static_cast<float>(room.top) + static_cast<float>(room.height) * 0.5f + 0.5f) * tileSize_
+    };
+}
+
+std::size_t TileMap::roomCount() const
+{
+    return rooms_.size();
+}
+
+void TileMap::lockRoomDoors(std::size_t roomIndex)
+{
+    unlockDoors();
+
+    for (const DoorTile& doorTile : doorTiles_) {
+        if (doorTile.roomIndex != roomIndex) {
+            continue;
+        }
+
+        const auto row = static_cast<std::size_t>(doorTile.row);
+        const auto column = static_cast<std::size_t>(doorTile.column);
+        if (row >= tiles_.size() || tiles_.empty() || column >= tiles_[row].size()) {
+            continue;
+        }
+
+        tiles_[row][column] = 2;
+        activeDoorTiles_.push_back({doorTile.column, doorTile.row});
+    }
+}
+
+void TileMap::unlockDoors()
+{
+    for (const sf::Vector2i& tilePosition : activeDoorTiles_) {
+        if (tilePosition.y < 0 || tilePosition.x < 0) {
+            continue;
+        }
+
+        const auto row = static_cast<std::size_t>(tilePosition.y);
+        const auto column = static_cast<std::size_t>(tilePosition.x);
+        if (row >= tiles_.size() || tiles_.empty() || column >= tiles_[row].size()) {
+            continue;
+        }
+
+        if (tiles_[row][column] == 2) {
+            tiles_[row][column] = 0;
+        }
+    }
+
+    activeDoorTiles_.clear();
+}
+
 float TileMap::tileSize() const
 {
     return tileSize_;
@@ -182,7 +326,7 @@ bool TileMap::isWall(int column, int row) const
         return true;
     }
 
-    return tiles_[rowIndex][columnIndex] == 1;
+    return tiles_[rowIndex][columnIndex] == 1 || tiles_[rowIndex][columnIndex] == 2;
 }
 
 }

@@ -1,6 +1,7 @@
 #include "MainMenuState.hpp"
 
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Window/Mouse.hpp>
 
 namespace {
 
@@ -25,6 +26,30 @@ void MainMenuState::onExit() {}
 
 void MainMenuState::handleEvent(const sf::Event& event)
 {
+    if (event.type == sf::Event::MouseMoved) {
+        const sf::Vector2f mousePosition{static_cast<float>(event.mouseMove.x), static_cast<float>(event.mouseMove.y)};
+        for (std::size_t index = 0; index < options_.size(); ++index) {
+            if (options_[index].getGlobalBounds().contains(mousePosition)) {
+                selectedIndex_ = index;
+                moveSelection(0);
+                return;
+            }
+        }
+        return;
+    }
+
+    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+        const sf::Vector2f mousePosition{static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y)};
+        for (std::size_t index = 0; index < options_.size(); ++index) {
+            if (options_[index].getGlobalBounds().contains(mousePosition)) {
+                selectedIndex_ = index;
+                selectCurrentOption();
+                return;
+            }
+        }
+        return;
+    }
+
     if (event.type != sf::Event::KeyPressed) {
         return;
     }

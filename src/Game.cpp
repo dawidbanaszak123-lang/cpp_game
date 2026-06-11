@@ -15,6 +15,7 @@ Game::Game()
     window_.setFramerateLimit(60);
     context_.window = &window_;
     context_.states = states_.get();
+    context_.returnToMainMenu = [this]() { returnToMainMenuRequested_ = true; };
     showMainMenu();
 }
 
@@ -49,6 +50,11 @@ void Game::update(float deltaSeconds)
 {
     if (states_) {
         states_->update(deltaSeconds);
+    }
+
+    if (returnToMainMenuRequested_) {
+        returnToMainMenuRequested_ = false;
+        showMainMenu();
     }
 }
 

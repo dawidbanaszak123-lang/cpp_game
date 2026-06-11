@@ -28,6 +28,7 @@ private:
     sf::Clock frameClock_;
     GameContext context_;
     std::unique_ptr<StateStack> states_;
+    bool returnToMainMenuRequested_{false};
 };
 
 }

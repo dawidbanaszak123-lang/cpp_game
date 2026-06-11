@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 namespace sf {
 class RenderWindow;
 }
@@ -17,6 +19,7 @@ struct GameContext {
     ISaveSystem* saveSystem{};
     IStatsTracker* statsTracker{};
     StateStack* states{};
+    std::function<void()> returnToMainMenu;
 };
 
 }

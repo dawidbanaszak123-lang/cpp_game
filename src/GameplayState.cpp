@@ -1,5 +1,6 @@
 #include "GameplayState.hpp"
 
+#include "Rifle.hpp"
 #include "Revolver.hpp"
 
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -8,10 +9,13 @@
 #include <SFML/Window/Mouse.hpp>
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 namespace dungeon {
 
 namespace {
+
+constexpr const char* kSystemFontPath = "C:/Windows/Fonts/arial.ttf";
 
 [[nodiscard]] sf::Vector2f normalized(sf::Vector2f vector)
 {
@@ -31,10 +35,14 @@ GameplayState::GameplayState(GameContext& context)
     map_.generateRoom(25, 18);
     player_.setPosition(map_.spawnPosition());
     player_.addRangedWeapon(std::make_unique<Revolver>());
+    player_.addRangedWeapon(std::make_unique<Rifle>());
 
-    const sf::Vector2f spawn = map_.spawnPosition();
-    enemies_.push_back(Enemy::createRanged(spawn + sf::Vector2f{240.0f, 80.0f}));
-    enemies_.push_back(Enemy::createMelee(spawn + sf::Vector2f{120.0f, -110.0f}));
+    roomEncounters_.resize(map_.roomCount());
+    currentRoomIndex_ = map_.roomContaining(player_.bounds());
+    if (currentRoomIndex_) {
+        roomEncounters_[*currentRoomIndex_].visited = true;
+        roomEncounters_[*currentRoomIndex_].cleared = true;
+    }
 
     projectileShape_.setRadius(5.0f);
     projectileShape_.setOrigin({5.0f, 5.0f});
@@ -45,6 +53,12 @@ GameplayState::GameplayState(GameContext& context)
     crosshairVertical_.setSize({2.0f, 24.0f});
     crosshairVertical_.setOrigin({1.0f, 12.0f});
     crosshairVertical_.setFillColor(sf::Color::White);
+
+    hudFont_.loadFromFile(kSystemFontPath);
+    hpText_.setFont(hudFont_);
+    hpText_.setCharacterSize(22);
+    hpText_.setFillColor(sf::Color::White);
+    hpText_.setPosition({16.0f, 12.0f});
 }
 
 void GameplayState::onEnter()
@@ -61,6 +75,12 @@ void GameplayState::handleEvent(const sf::Event& event)
 {
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
         player_.dodgeRoll(readMovementInput());
+    } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Num1) {
+        player_.selectRangedWeapon(0);
+    } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Num2) {
+        player_.selectRangedWeapon(1);
+    } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+        player_.startReload();
     }
 }
 
@@ -68,6 +88,7 @@ void GameplayState::update(float deltaSeconds)
 {
     player_.update(deltaSeconds);
     updatePlayer(deltaSeconds);
+    updateRoomEncounters();
     if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
         const sf::Vector2i mousePixel = sf::Mouse::getPosition(*context_.window);
         const sf::Vector2f mouseWorld = context_.window->mapPixelToCoords(mousePixel, cameraView());
@@ -75,6 +96,10 @@ void GameplayState::update(float deltaSeconds)
     }
     updateEnemies(deltaSeconds);
     updateProjectiles(deltaSeconds);
+
+    if (!player_.isAlive() && context_.returnToMainMenu) {
+        context_.returnToMainMenu();
+    }
 }
 
 void GameplayState::render(sf::RenderTarget& target)
@@ -97,6 +122,7 @@ void GameplayState::render(sf::RenderTarget& target)
     player_.render(target);
 
     target.setView(previousView);
+    renderHud(target);
     renderCrosshair(target);
 }
 
@@ -125,13 +151,50 @@ void GameplayState::updatePlayer(float deltaSeconds)
     }
 }
 
+void GameplayState::updateRoomEncounters()
+{
+    const std::optional<std::size_t> roomIndex = map_.roomContaining(player_.bounds());
+    if (!roomIndex) {
+        return;
+    }
+
+    if (currentRoomIndex_ != roomIndex) {
+        currentRoomIndex_ = roomIndex;
+        if (*roomIndex < roomEncounters_.size() && !roomEncounters_[*roomIndex].visited) {
+            roomEncounters_[*roomIndex].visited = true;
+            map_.lockRoomDoors(*roomIndex);
+            spawnRoomEnemies(*roomIndex);
+        }
+    }
+
+    if (*roomIndex < roomEncounters_.size() && roomEncounters_[*roomIndex].visited && !roomEncounters_[*roomIndex].cleared && enemies_.empty()) {
+        roomEncounters_[*roomIndex].cleared = true;
+        map_.unlockDoors();
+        projectiles_.clear();
+    }
+}
+
+void GameplayState::spawnRoomEnemies(std::size_t roomIndex)
+{
+    enemies_.clear();
+    projectiles_.clear();
+
+    const sf::Vector2f center = map_.roomCenter(roomIndex);
+    enemies_.push_back(Enemy::createMelee(center + sf::Vector2f{-120.0f, -80.0f}));
+    enemies_.push_back(Enemy::createRanged(center + sf::Vector2f{120.0f, 80.0f}));
+
+    if (roomIndex % 2 == 0) {
+        enemies_.push_back(Enemy::createMelee(center + sf::Vector2f{80.0f, -130.0f}));
+    }
+}
+
 void GameplayState::updateEnemies(float deltaSeconds)
 {
     for (auto& enemy : enemies_) {
         enemy.updateAgainstPlayer(player_.position(), deltaSeconds, projectiles_);
 
-        if (enemy.enemyType() == EnemyType::Chaser && enemy.bounds().intersects(player_.bounds())) {
-            player_.applyDamage({12.0f * deltaSeconds, DamageType::Melee, false});
+        if (enemy.bounds().intersects(player_.bounds())) {
+            player_.applyDamage({5.0f, DamageType::Melee, false});
         }
     }
 
@@ -186,6 +249,22 @@ void GameplayState::fireProjectile(sf::Vector2f target)
     if (auto projectile = player_.tryFireRangedWeapon(target)) {
         projectiles_.push_back(*projectile);
     }
+}
+
+void GameplayState::renderHud(sf::RenderTarget& target)
+{
+    const sf::View previousView = target.getView();
+    target.setView(target.getDefaultView());
+
+    hpText_.setString(
+        "HP: " + std::to_string(static_cast<int>(player_.health())) +
+        " / " + std::to_string(static_cast<int>(player_.maxHealth())) +
+        " | Ammo: " + std::to_string(player_.activeAmmo()) +
+        " / " + std::to_string(player_.activeMagazineSize()) +
+        (player_.isReloading() ? " | RELOADING..." : ""));
+    target.draw(hpText_);
+
+    target.setView(previousView);
 }
 
 void GameplayState::renderCrosshair(sf::RenderTarget& target)
