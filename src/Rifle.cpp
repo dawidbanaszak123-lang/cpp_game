@@ -8,7 +8,7 @@ namespace {
 
 constexpr int kMagazineSize = 30;
 constexpr float kCooldownSeconds = 0.12f;
-constexpr float kDamage = 12.0f;
+constexpr float kDamage = 3.0f;
 
 }
 

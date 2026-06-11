@@ -36,6 +36,13 @@ void Player::update(float deltaSeconds)
     if (invincibilityTimer_ > 0.0f) {
         invincibilityTimer_ -= deltaSeconds;
     }
+    if (reloadTimer_ > 0.0f) {
+        reloadTimer_ -= deltaSeconds;
+        if (reloadTimer_ <= 0.0f && reloadingWeaponIndex_ < rangedWeapons_.size()) {
+            reloadTimer_ = 0.0f;
+            rangedWeapons_[reloadingWeaponIndex_]->reload();
+        }
+    }
     for (const auto& weapon : rangedWeapons_) {
         weapon->update(deltaSeconds);
     }
@@ -68,6 +75,7 @@ void Player::applyDamage(const Damage& damage)
     if (health_ < 0.0f) {
         health_ = 0.0f;
     }
+    invincibilityTimer_ = invincibilityDurationSeconds_;
 }
 
 bool Player::isAlive() const
@@ -123,7 +131,7 @@ void Player::fireRangedWeapon(sf::Vector2f target)
 
 std::optional<Projectile> Player::tryFireRangedWeapon(sf::Vector2f target)
 {
-    if (rangedWeapons_.empty()) {
+    if (rangedWeapons_.empty() || isReloading()) {
         return std::nullopt;
     }
 
@@ -135,7 +143,7 @@ std::optional<Projectile> Player::tryFireRangedWeapon(sf::Vector2f target)
         return std::nullopt;
     }
 
-    return rangedWeapons_.front()->tryShoot(position(), direction);
+    return rangedWeapons_[activeRangedWeaponIndex_]->tryShoot(position(), direction);
 }
 
 void Player::equipMeleeWeapon(std::unique_ptr<IMeleeWeapon> weapon)
@@ -146,6 +154,30 @@ void Player::equipMeleeWeapon(std::unique_ptr<IMeleeWeapon> weapon)
 void Player::addRangedWeapon(std::unique_ptr<IRangedWeapon> weapon)
 {
     rangedWeapons_.push_back(std::move(weapon));
+    if (activeRangedWeaponIndex_ >= rangedWeapons_.size()) {
+        activeRangedWeaponIndex_ = 0;
+    }
+}
+
+void Player::selectRangedWeapon(std::size_t index)
+{
+    if (index < rangedWeapons_.size()) {
+        activeRangedWeaponIndex_ = index;
+    }
+}
+
+void Player::startReload()
+{
+    if (rangedWeapons_.empty() || isReloading()) {
+        return;
+    }
+
+    if (activeAmmo() >= activeMagazineSize()) {
+        return;
+    }
+
+    reloadingWeaponIndex_ = activeRangedWeaponIndex_;
+    reloadTimer_ = reloadDurationSeconds_;
 }
 
 sf::FloatRect Player::bounds() const
@@ -166,6 +198,29 @@ bool Player::isDodging() const
 bool Player::canDodge() const
 {
     return dodgeCooldownTimer_ <= 0.0f;
+}
+
+int Player::activeAmmo() const
+{
+    if (rangedWeapons_.empty()) {
+        return 0;
+    }
+
+    return rangedWeapons_[activeRangedWeaponIndex_]->ammo();
+}
+
+int Player::activeMagazineSize() const
+{
+    if (rangedWeapons_.empty()) {
+        return 0;
+    }
+
+    return rangedWeapons_[activeRangedWeaponIndex_]->magazineSize();
+}
+
+bool Player::isReloading() const
+{
+    return reloadTimer_ > 0.0f;
 }
 
 }

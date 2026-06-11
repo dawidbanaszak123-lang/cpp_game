@@ -43,8 +43,8 @@ Enemy::Enemy(EnemyType type)
         maxHealth_ = 30.0f;
     } else {
         body_ = makeChaserShape();
-        health_ = 45.0f;
-        maxHealth_ = 45.0f;
+        health_ = 20.0f;
+        maxHealth_ = 20.0f;
     }
 }
 

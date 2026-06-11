@@ -6,6 +6,7 @@
 #include "Projectile.hpp"
 
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -34,17 +35,24 @@ public:
     [[nodiscard]] std::optional<Projectile> tryFireRangedWeapon(sf::Vector2f target);
     void equipMeleeWeapon(std::unique_ptr<IMeleeWeapon> weapon);
     void addRangedWeapon(std::unique_ptr<IRangedWeapon> weapon);
+    void selectRangedWeapon(std::size_t index);
+    void startReload();
 
     [[nodiscard]] sf::FloatRect bounds() const;
     [[nodiscard]] float movementSpeed() const;
     [[nodiscard]] bool isDodging() const;
     [[nodiscard]] bool canDodge() const;
+    [[nodiscard]] int activeAmmo() const;
+    [[nodiscard]] int activeMagazineSize() const;
+    [[nodiscard]] bool isReloading() const;
 
 private:
     sf::RectangleShape body_;
     sf::Vector2f lastMoveDirection_{1.0f, 0.0f};
     std::unique_ptr<IMeleeWeapon> meleeWeapon_;
     std::vector<std::unique_ptr<IRangedWeapon>> rangedWeapons_;
+    std::size_t activeRangedWeaponIndex_{0};
+    std::size_t reloadingWeaponIndex_{0};
     float health_{100.0f};
     float maxHealth_{100.0f};
     float baseSpeed_{180.0f};
@@ -55,6 +63,8 @@ private:
     float dodgeTimer_{};
     float dodgeCooldownTimer_{};
     float invincibilityTimer_{};
+    float reloadDurationSeconds_{3.0f};
+    float reloadTimer_{};
 };
 
 }
