@@ -6,12 +6,21 @@
 
 namespace dungeon {
 
+enum class ProjectileOwner {
+    Player,
+    Enemy
+};
+
 struct Projectile {
     sf::Vector2f position{};
     sf::Vector2f velocity{};
     Damage damage{};
     float lifetimeSeconds{};
     float radius{5.0f};
+    ProjectileOwner owner{ProjectileOwner::Player};
 };
+
+[[nodiscard]] Projectile makePlayerProjectile(sf::Vector2f origin, sf::Vector2f direction, float damageAmount);
+[[nodiscard]] Projectile makeEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction);
 
 }
