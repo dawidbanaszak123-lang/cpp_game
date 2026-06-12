@@ -20,6 +20,8 @@ struct GameContext {
     IStatsTracker* statsTracker{};
     StateStack* states{};
     std::function<void()> returnToMainMenu;
+    std::function<void()> restartGameplay;
+    std::function<void(bool)> showEndGame;
 };
 
 }

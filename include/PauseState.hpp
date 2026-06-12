@@ -3,6 +3,7 @@
 #include "GameContext.hpp"
 #include "IState.hpp"
 
+#include <SFML/Graphics/ConvexShape.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
@@ -25,8 +26,8 @@ private:
     GameContext& context_;
     sf::Font font_;
     sf::RectangleShape background_;
+    sf::ConvexShape resumeTriangle_;
     sf::Text titleText_;
-    sf::Text resumeText_;
     sf::Text exitText_;
     int selectedOption_{0};
 

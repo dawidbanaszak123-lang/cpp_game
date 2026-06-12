@@ -6,7 +6,6 @@
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <functional>
-#include <vector>
 
 namespace dungeon {
 
@@ -26,12 +25,17 @@ private:
     void rebuildMenuText();
     void moveSelection(int offset);
     void selectCurrentOption();
+    void updateTextColors();
+    [[nodiscard]] bool enterOptionContains(sf::Vector2f point) const;
 
     GameContext& context_;
     std::function<void()> onPlay_;
     std::function<void()> onExit_;
     sf::Font font_;
-    std::vector<sf::Text> options_;
+    sf::Text titleText_;
+    sf::Text enterText_;
+    sf::Text dungeonText_;
+    sf::Text leaveText_;
     std::size_t selectedIndex_{};
 };
 

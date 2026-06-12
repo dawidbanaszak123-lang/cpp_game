@@ -23,16 +23,17 @@ PauseState::PauseState(GameContext& context) : context_(context)
     background_.setFillColor(sf::Color(0, 0, 0, 160));
 
     titleText_.setFont(font_);
-    titleText_.setString("PAUZA");
+    titleText_.setString("PAUSED");
     titleText_.setCharacterSize(42);
     titleText_.setFillColor(sf::Color::White);
 
-    resumeText_.setFont(font_);
-    resumeText_.setString("Graj dalej");
-    resumeText_.setCharacterSize(30);
+    resumeTriangle_.setPointCount(3);
+    resumeTriangle_.setPoint(0, {0.0f, 0.0f});
+    resumeTriangle_.setPoint(1, {0.0f, 54.0f});
+    resumeTriangle_.setPoint(2, {46.0f, 27.0f});
 
     exitText_.setFont(font_);
-    exitText_.setString("Wyjdz");
+    exitText_.setString("Give up?");
     exitText_.setCharacterSize(30);
 
     updateTextColors();
@@ -70,7 +71,7 @@ void PauseState::handleEvent(const sf::Event& event)
             static_cast<float>(event.mouseButton.y)
         };
 
-        if (resumeText_.getGlobalBounds().contains(mousePosition)) {
+        if (resumeTriangle_.getGlobalBounds().contains(mousePosition)) {
             selectedOption_ = 0;
             chooseSelectedOption();
         } else if (exitText_.getGlobalBounds().contains(mousePosition)) {
@@ -93,12 +94,12 @@ void PauseState::render(sf::RenderTarget& target)
 
     const float centerX = static_cast<float>(windowSize.x) * 0.5f;
     titleText_.setPosition({centerX - titleText_.getGlobalBounds().width * 0.5f, 170.0f});
-    resumeText_.setPosition({centerX - resumeText_.getGlobalBounds().width * 0.5f, 260.0f});
+    resumeTriangle_.setPosition({centerX - resumeTriangle_.getGlobalBounds().width * 0.5f, 245.0f});
     exitText_.setPosition({centerX - exitText_.getGlobalBounds().width * 0.5f, 315.0f});
 
     target.draw(background_);
     target.draw(titleText_);
-    target.draw(resumeText_);
+    target.draw(resumeTriangle_);
     target.draw(exitText_);
 
     target.setView(previousView);
@@ -109,7 +110,7 @@ bool PauseState::allowsUnderlyingRender() const { return true; }
 
 void PauseState::updateTextColors()
 {
-    resumeText_.setFillColor(selectedOption_ == 0 ? sf::Color::Yellow : sf::Color::White);
+    resumeTriangle_.setFillColor(selectedOption_ == 0 ? sf::Color::Yellow : sf::Color::White);
     exitText_.setFillColor(selectedOption_ == 1 ? sf::Color::Yellow : sf::Color::White);
 }
 
@@ -117,8 +118,8 @@ void PauseState::chooseSelectedOption()
 {
     if (selectedOption_ == 0) {
         context_.states->pop();
-    } else if (context_.window) {
-        context_.window->close();
+    } else if (context_.returnToMainMenu) {
+        context_.returnToMainMenu();
     }
 }
 

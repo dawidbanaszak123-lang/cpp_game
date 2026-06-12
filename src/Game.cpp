@@ -2,6 +2,7 @@
 
 #include "GameplayState.hpp"
 #include "MainMenuState.hpp"
+#include "PostGameStatsState.hpp"
 #include "StateStack.hpp"
 
 #include <SFML/Window/Event.hpp>
@@ -16,6 +17,8 @@ Game::Game()
     context_.window = &window_;
     context_.states = states_.get();
     context_.returnToMainMenu = [this]() { returnToMainMenuRequested_ = true; };
+    context_.restartGameplay = [this]() { restartGameplayRequested_ = true; };
+    context_.showEndGame = [this](bool won) { endGameWinRequested_ = won; };
     showMainMenu();
 }
 
@@ -55,6 +58,14 @@ void Game::update(float deltaSeconds)
     if (returnToMainMenuRequested_) {
         returnToMainMenuRequested_ = false;
         showMainMenu();
+    } else if (restartGameplayRequested_) {
+        restartGameplayRequested_ = false;
+        startGameplay();
+    } else if (endGameWinRequested_) {
+        states_->push(std::make_unique<PostGameStatsState>(
+            context_,
+            *endGameWinRequested_ ? PostGameResult::Win : PostGameResult::Lose));
+        endGameWinRequested_.reset();
     }
 }
 

@@ -3,6 +3,7 @@
 #include "Bazooka.hpp"
 #include "Laser.hpp"
 #include "PauseState.hpp"
+#include "PostGameStatsState.hpp"
 #include "Rifle.hpp"
 #include "Revolver.hpp"
 #include "StateStack.hpp"
@@ -124,6 +125,10 @@ void GameplayState::onExit()
 
 void GameplayState::handleEvent(const sf::Event& event)
 {
+    if (endScreenShown_) {
+        return;
+    }
+
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
         context_.states->push(std::make_unique<PauseState>(context_));
     } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
@@ -139,6 +144,10 @@ void GameplayState::handleEvent(const sf::Event& event)
 
 void GameplayState::update(float deltaSeconds)
 {
+    if (endScreenShown_) {
+        return;
+    }
+
     player_.update(deltaSeconds);
     updatePlayer(deltaSeconds);
     updateRoomEncounters();
@@ -153,9 +162,11 @@ void GameplayState::update(float deltaSeconds)
     updateEffects(deltaSeconds);
     updateWaves(deltaSeconds);
 
-    if (!player_.isAlive() && context_.returnToMainMenu) {
-        context_.returnToMainMenu();
+    if (!player_.isAlive()) {
+        requestEndGame(PostGameResult::Lose);
     }
+
+    showPendingEndGame();
 }
 
 void GameplayState::render(sf::RenderTarget& target)
@@ -522,9 +533,29 @@ void GameplayState::damageBoss(const Damage& damage)
     map_.unlockDoors();
     currentWave_ = 3;
     waitingForWeaponPickup_ = false;
+    requestEndGame(PostGameResult::Win);
 
     if (currentRoomIndex_ && *currentRoomIndex_ < roomEncounters_.size()) {
         roomEncounters_[*currentRoomIndex_].cleared = true;
+    }
+}
+
+void GameplayState::requestEndGame(PostGameResult result)
+{
+    if (!pendingEndGame_) {
+        pendingEndGame_ = result;
+    }
+}
+
+void GameplayState::showPendingEndGame()
+{
+    if (endScreenShown_ || !pendingEndGame_) {
+        return;
+    }
+
+    endScreenShown_ = true;
+    if (context_.showEndGame) {
+        context_.showEndGame(*pendingEndGame_ == PostGameResult::Win);
     }
 }
 

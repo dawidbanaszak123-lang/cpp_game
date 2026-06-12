@@ -28,24 +28,24 @@ void MainMenuState::handleEvent(const sf::Event& event)
 {
     if (event.type == sf::Event::MouseMoved) {
         const sf::Vector2f mousePosition{static_cast<float>(event.mouseMove.x), static_cast<float>(event.mouseMove.y)};
-        for (std::size_t index = 0; index < options_.size(); ++index) {
-            if (options_[index].getGlobalBounds().contains(mousePosition)) {
-                selectedIndex_ = index;
-                moveSelection(0);
-                return;
-            }
+        if (enterOptionContains(mousePosition)) {
+            selectedIndex_ = 0;
+            updateTextColors();
+        } else if (leaveText_.getGlobalBounds().contains(mousePosition)) {
+            selectedIndex_ = 1;
+            updateTextColors();
         }
         return;
     }
 
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         const sf::Vector2f mousePosition{static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y)};
-        for (std::size_t index = 0; index < options_.size(); ++index) {
-            if (options_[index].getGlobalBounds().contains(mousePosition)) {
-                selectedIndex_ = index;
-                selectCurrentOption();
-                return;
-            }
+        if (enterOptionContains(mousePosition)) {
+            selectedIndex_ = 0;
+            selectCurrentOption();
+        } else if (leaveText_.getGlobalBounds().contains(mousePosition)) {
+            selectedIndex_ = 1;
+            selectCurrentOption();
         }
         return;
     }
@@ -67,9 +67,10 @@ void MainMenuState::update(float) {}
 
 void MainMenuState::render(sf::RenderTarget& target)
 {
-    for (const auto& option : options_) {
-        target.draw(option);
-    }
+    target.draw(titleText_);
+    target.draw(enterText_);
+    target.draw(dungeonText_);
+    target.draw(leaveText_);
 }
 
 bool MainMenuState::allowsUnderlyingUpdate() const
@@ -84,35 +85,35 @@ bool MainMenuState::allowsUnderlyingRender() const
 
 void MainMenuState::rebuildMenuText()
 {
-    options_.clear();
+    titleText_.setFont(font_);
+    titleText_.setString("DungeonGod");
+    titleText_.setCharacterSize(54);
+    titleText_.setFillColor(sf::Color::White);
+    titleText_.setPosition(245.0f, 135.0f);
 
-    const std::vector<const char*> labels{"Play", "Load Game", "Exit"};
-    const float startY = 220.0f;
+    enterText_.setFont(font_);
+    enterText_.setString("ENTER");
+    enterText_.setCharacterSize(38);
+    enterText_.setPosition(235.0f, 265.0f);
 
-    for (std::size_t i = 0; i < labels.size(); ++i) {
-        sf::Text text;
-        text.setFont(font_);
-        text.setString(labels[i]);
-        text.setCharacterSize(36);
-        text.setPosition(330.0f, startY + static_cast<float>(i) * 58.0f);
-        options_.push_back(text);
-    }
+    dungeonText_.setFont(font_);
+    dungeonText_.setString(" the dungeon");
+    dungeonText_.setCharacterSize(38);
+    dungeonText_.setPosition(enterText_.getPosition().x + enterText_.getGlobalBounds().width, 265.0f);
 
-    moveSelection(0);
+    leaveText_.setFont(font_);
+    leaveText_.setString("leave...");
+    leaveText_.setCharacterSize(34);
+    leaveText_.setPosition(335.0f, 340.0f);
+
+    updateTextColors();
 }
 
 void MainMenuState::moveSelection(int offset)
 {
-    if (options_.empty()) {
-        return;
-    }
-
-    const auto size = static_cast<int>(options_.size());
+    const int size = 2;
     selectedIndex_ = static_cast<std::size_t>((static_cast<int>(selectedIndex_) + offset + size) % size);
-
-    for (std::size_t i = 0; i < options_.size(); ++i) {
-        options_[i].setFillColor(i == selectedIndex_ ? sf::Color(255, 210, 80) : sf::Color::White);
-    }
+    updateTextColors();
 }
 
 void MainMenuState::selectCurrentOption()
@@ -120,10 +121,20 @@ void MainMenuState::selectCurrentOption()
     if (selectedIndex_ == 0) {
         onPlay_();
     } else if (selectedIndex_ == 1) {
-        onPlay_();
-    } else if (selectedIndex_ == 2) {
         onExit_();
     }
+}
+
+void MainMenuState::updateTextColors()
+{
+    enterText_.setFillColor(selectedIndex_ == 0 ? sf::Color(255, 220, 80) : sf::Color::White);
+    dungeonText_.setFillColor(sf::Color::White);
+    leaveText_.setFillColor(selectedIndex_ == 1 ? sf::Color(180, 180, 180) : sf::Color::White);
+}
+
+bool MainMenuState::enterOptionContains(sf::Vector2f point) const
+{
+    return enterText_.getGlobalBounds().contains(point) || dungeonText_.getGlobalBounds().contains(point);
 }
 
 }

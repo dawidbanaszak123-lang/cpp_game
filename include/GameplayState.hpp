@@ -4,6 +4,7 @@
 #include "Enemy.hpp"
 #include "Player.hpp"
 #include "IState.hpp"
+#include "PostGameStatsState.hpp"
 #include "Projectile.hpp"
 #include "TileMap.hpp"
 
@@ -99,6 +100,8 @@ private:
     [[nodiscard]] bool isFinalRoom(std::size_t roomIndex) const;
     [[nodiscard]] sf::FloatRect bossBounds() const;
     void damageBoss(const Damage& damage);
+    void requestEndGame(PostGameResult result);
+    void showPendingEndGame();
     void updateProjectiles(float deltaSeconds);
     void updateEffects(float deltaSeconds);
     void updateWaves(float deltaSeconds);
@@ -135,8 +138,10 @@ private:
     sf::Text weaponSpawnText_;
     int currentWave_{0};
     bool waitingForWeaponPickup_{false};
+    bool endScreenShown_{false};
     float waveTextTimer_{0.0f};
     float weaponSpawnTextTimer_{0.0f};
+    std::optional<PostGameResult> pendingEndGame_;
 };
 
 }

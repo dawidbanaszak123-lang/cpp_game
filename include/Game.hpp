@@ -5,6 +5,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <memory>
+#include <optional>
 
 namespace dungeon {
 
@@ -29,6 +30,8 @@ private:
     GameContext context_;
     std::unique_ptr<StateStack> states_;
     bool returnToMainMenuRequested_{false};
+    bool restartGameplayRequested_{false};
+    std::optional<bool> endGameWinRequested_;
 };
 
 }
