@@ -22,6 +22,7 @@ public:
     [[nodiscard]] std::optional<std::size_t> roomAt(sf::Vector2f position) const;
     [[nodiscard]] std::optional<std::size_t> roomContaining(const sf::FloatRect& bounds) const;
     [[nodiscard]] sf::Vector2f roomCenter(std::size_t roomIndex) const;
+    [[nodiscard]] sf::FloatRect roomBounds(std::size_t roomIndex) const;
     [[nodiscard]] std::size_t roomCount() const;
     void lockRoomDoors(std::size_t roomIndex);
     void unlockDoors();

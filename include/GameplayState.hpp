@@ -66,6 +66,8 @@ private:
     void updatePlayer(float deltaSeconds);
     void updateRoomEncounters();
     void spawnRoomEnemies(std::size_t roomIndex);
+    void addEnemies(EnemyType type, int count, std::size_t roomIndex);
+    [[nodiscard]] sf::Vector2f randomSpawnPosition(std::size_t roomIndex);
     void updateEnemies(float deltaSeconds);
     void updateProjectiles(float deltaSeconds);
     void updateEffects(float deltaSeconds);

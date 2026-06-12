@@ -262,6 +262,21 @@ sf::Vector2f TileMap::roomCenter(std::size_t roomIndex) const
     };
 }
 
+sf::FloatRect TileMap::roomBounds(std::size_t roomIndex) const
+{
+    if (roomIndex >= rooms_.size()) {
+        return {};
+    }
+
+    const sf::IntRect room = rooms_[roomIndex];
+    return {
+        static_cast<float>(room.left) * tileSize_,
+        static_cast<float>(room.top) * tileSize_,
+        static_cast<float>(room.width) * tileSize_,
+        static_cast<float>(room.height) * tileSize_
+    };
+}
+
 std::size_t TileMap::roomCount() const
 {
     return rooms_.size();

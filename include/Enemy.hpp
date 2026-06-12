@@ -13,8 +13,8 @@ namespace dungeon {
 enum class EnemyType {
     Chaser,
     Shooter,
-    Tank,
-    Swarmer
+    HeavyRanged,
+    Laser
 };
 
 class Enemy : public Character {
@@ -23,6 +23,8 @@ public:
 
     [[nodiscard]] static Enemy createRanged(sf::Vector2f position);
     [[nodiscard]] static Enemy createMelee(sf::Vector2f position);
+    [[nodiscard]] static Enemy createHeavyRanged(sf::Vector2f position);
+    [[nodiscard]] static Enemy createLaser(sf::Vector2f position);
 
     void update(float deltaSeconds) override;
     void render(sf::RenderTarget& target) override;
@@ -38,11 +40,17 @@ public:
     void chooseBehavior(float deltaSeconds);
     void updateAgainstPlayer(sf::Vector2f playerPosition, float deltaSeconds, std::vector<Projectile>& projectiles);
     [[nodiscard]] sf::FloatRect bounds() const;
+    [[nodiscard]] bool laserCanDamagePlayer(const sf::FloatRect& playerBounds) const;
+    void markLaserHitPlayer();
 
 private:
     [[nodiscard]] sf::Vector2f directionTo(sf::Vector2f target) const;
     void updateShooter(sf::Vector2f playerPosition, float deltaSeconds, std::vector<Projectile>& projectiles);
+    void updateHeavyRanged(sf::Vector2f playerPosition, float deltaSeconds, std::vector<Projectile>& projectiles);
+    void updateLaser(sf::Vector2f playerPosition, float deltaSeconds);
     void updateChaser(sf::Vector2f playerPosition, float deltaSeconds);
+    void startLaserCharge(sf::Vector2f playerPosition);
+    void drawLaser(sf::RenderTarget& target, sf::Color color, float thickness);
 
     EnemyType type_{EnemyType::Chaser};
     std::unique_ptr<sf::Shape> body_;
@@ -51,6 +59,11 @@ private:
     float moveSpeed_{90.0f};
     float shootCooldownSeconds_{1.35f};
     float shootCooldownRemaining_{0.0f};
+    float laserCooldownRemaining_{1.0f};
+    float laserStateTimer_{0.0f};
+    int laserState_{0};
+    bool laserHitPlayer_{false};
+    sf::Vector2f laserDirection_{1.0f, 0.0f};
 };
 
 }

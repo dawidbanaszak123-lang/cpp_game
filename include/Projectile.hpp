@@ -29,6 +29,7 @@ struct Projectile {
 
 [[nodiscard]] Projectile makePlayerProjectile(sf::Vector2f origin, sf::Vector2f direction, float damageAmount);
 [[nodiscard]] Projectile makeEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction);
+[[nodiscard]] Projectile makeHeavyEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction);
 [[nodiscard]] Projectile makeBazookaProjectile(sf::Vector2f origin, sf::Vector2f direction);
 [[nodiscard]] Projectile makeLaserShot(sf::Vector2f origin, sf::Vector2f direction);
 

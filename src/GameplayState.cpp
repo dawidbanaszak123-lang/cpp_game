@@ -258,17 +258,72 @@ void GameplayState::spawnRoomEnemies(std::size_t roomIndex)
     enemies_.clear();
     projectiles_.clear();
 
-    const sf::Vector2f center = map_.roomCenter(roomIndex);
+    const int roomBonus = static_cast<int>(roomIndex);
+    const int triangleCount = 2 + roomBonus;
+    const int squareCount = 2 + roomBonus;
+    const int pentagonCount = roomIndex > 4 ? 2 : 1;
+    const int circleCount = 1;
 
     if (currentWave_ == 1) {
-        enemies_.push_back(Enemy::createMelee(center + sf::Vector2f{-120.0f, -80.0f}));
-        enemies_.push_back(Enemy::createRanged(center + sf::Vector2f{120.0f, 80.0f}));
-    } else if (currentWave_ == 2) {
-        enemies_.push_back(Enemy::createMelee(center + sf::Vector2f{-150.0f, -90.0f}));
-        enemies_.push_back(Enemy::createMelee(center + sf::Vector2f{120.0f, -120.0f}));
-        enemies_.push_back(Enemy::createRanged(center + sf::Vector2f{150.0f, 90.0f}));
-        enemies_.push_back(Enemy::createRanged(center + sf::Vector2f{-100.0f, 110.0f}));
+        addEnemies(EnemyType::Shooter, triangleCount, roomIndex);
+        addEnemies(EnemyType::Chaser, squareCount, roomIndex);
+        return;
     }
+
+    addEnemies(EnemyType::Shooter, triangleCount, roomIndex);
+    addEnemies(EnemyType::Chaser, squareCount, roomIndex);
+    addEnemies(EnemyType::Laser, pentagonCount, roomIndex);
+    addEnemies(EnemyType::HeavyRanged, circleCount, roomIndex);
+}
+
+void GameplayState::addEnemies(EnemyType type, int count, std::size_t roomIndex)
+{
+    for (int i = 0; i < count; ++i) {
+        const sf::Vector2f spawn = randomSpawnPosition(roomIndex);
+
+        if (type == EnemyType::Shooter) {
+            enemies_.push_back(Enemy::createRanged(spawn));
+        } else if (type == EnemyType::Chaser) {
+            enemies_.push_back(Enemy::createMelee(spawn));
+        } else if (type == EnemyType::HeavyRanged) {
+            enemies_.push_back(Enemy::createHeavyRanged(spawn));
+        } else if (type == EnemyType::Laser) {
+            enemies_.push_back(Enemy::createLaser(spawn));
+        }
+    }
+}
+
+sf::Vector2f GameplayState::randomSpawnPosition(std::size_t roomIndex)
+{
+    const sf::FloatRect room = map_.roomBounds(roomIndex);
+    const sf::Vector2f fallback = map_.roomCenter(roomIndex);
+
+    if (room.width <= 96.0f || room.height <= 96.0f) {
+        return fallback;
+    }
+
+    for (int attempt = 0; attempt < 200; ++attempt) {
+        const int randomX = std::rand() % static_cast<int>(room.width - 96.0f);
+        const int randomY = std::rand() % static_cast<int>(room.height - 96.0f);
+
+        sf::Vector2f position{
+            room.left + 48.0f + static_cast<float>(randomX),
+            room.top + 48.0f + static_cast<float>(randomY)
+        };
+
+        sf::FloatRect enemyBounds{position.x - 22.0f, position.y - 22.0f, 44.0f, 44.0f};
+        if (map_.collides(enemyBounds)) {
+            continue;
+        }
+
+        if (distance(position, player_.position()) < 160.0f) {
+            continue;
+        }
+
+        return position;
+    }
+
+    return fallback;
 }
 
 void GameplayState::updateEnemies(float deltaSeconds)
@@ -276,8 +331,13 @@ void GameplayState::updateEnemies(float deltaSeconds)
     for (auto& enemy : enemies_) {
         enemy.updateAgainstPlayer(player_.position(), deltaSeconds, projectiles_);
 
-        if (enemy.bounds().intersects(player_.bounds())) {
+        if (enemy.enemyType() == EnemyType::Chaser && enemy.bounds().intersects(player_.bounds())) {
             player_.applyDamage({5.0f, DamageType::Melee, false});
+        }
+
+        if (enemy.laserCanDamagePlayer(player_.bounds())) {
+            player_.applyDamage({15.0f, DamageType::Laser, false});
+            enemy.markLaserHitPlayer();
         }
     }
 

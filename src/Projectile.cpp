@@ -28,6 +28,19 @@ Projectile makeEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction)
     return projectile;
 }
 
+Projectile makeHeavyEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction)
+{
+    Projectile projectile;
+    projectile.position = origin;
+    projectile.velocity = direction * 150.0f;
+    projectile.damage = {20.0f, DamageType::Bullet, false};
+    projectile.lifetimeSeconds = 4.0f;
+    projectile.radius = 11.0f;
+    projectile.owner = ProjectileOwner::Enemy;
+    projectile.kind = ProjectileKind::Normal;
+    return projectile;
+}
+
 Projectile makeBazookaProjectile(sf::Vector2f origin, sf::Vector2f direction)
 {
     Projectile projectile;
