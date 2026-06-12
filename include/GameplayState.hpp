@@ -63,12 +63,42 @@ private:
         std::string name;
     };
 
+    enum class BossAttackState {
+        Cooldown,
+        RangedBurst,
+        Dash,
+        LaserWarning,
+        LaserBeam
+    };
+
+    struct FinalBoss {
+        sf::CircleShape body;
+        BossAttackState state{BossAttackState::Cooldown};
+        float health{350.0f};
+        float maxHealth{350.0f};
+        float stateTimer{1.0f};
+        float shootTimer{0.0f};
+        bool dashHitPlayer{false};
+        bool laserHitPlayer{false};
+        sf::Vector2f dashTarget{};
+        sf::Vector2f dashDirection{};
+        sf::Vector2f laserDirection{1.0f, 0.0f};
+    };
+
     void updatePlayer(float deltaSeconds);
     void updateRoomEncounters();
     void spawnRoomEnemies(std::size_t roomIndex);
     void addEnemies(EnemyType type, int count, std::size_t roomIndex);
     [[nodiscard]] sf::Vector2f randomSpawnPosition(std::size_t roomIndex);
     void updateEnemies(float deltaSeconds);
+    void spawnFinalBoss(std::size_t roomIndex);
+    void updateFinalBoss(float deltaSeconds);
+    void chooseFinalBossAttack();
+    void drawFinalBossLaser(sf::RenderTarget& target);
+    void renderBossHealthBar(sf::RenderTarget& target);
+    [[nodiscard]] bool isFinalRoom(std::size_t roomIndex) const;
+    [[nodiscard]] sf::FloatRect bossBounds() const;
+    void damageBoss(const Damage& damage);
     void updateProjectiles(float deltaSeconds);
     void updateEffects(float deltaSeconds);
     void updateWaves(float deltaSeconds);
@@ -95,6 +125,7 @@ private:
     std::vector<ExplosionEffect> explosions_;
     std::vector<LaserEffect> laserEffects_;
     std::optional<WeaponPickup> weaponPickup_;
+    std::optional<FinalBoss> finalBoss_;
     sf::CircleShape projectileShape_;
     sf::RectangleShape crosshairHorizontal_;
     sf::RectangleShape crosshairVertical_;

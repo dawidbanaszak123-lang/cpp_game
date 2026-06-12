@@ -181,6 +181,10 @@ void GameplayState::render(sf::RenderTarget& target)
             target.draw(line.shape);
         }
     }
+    if (finalBoss_) {
+        drawFinalBossLaser(target);
+        target.draw(finalBoss_->body);
+    }
     if (weaponPickup_) {
         target.draw(weaponPickup_->shape);
     }
@@ -191,6 +195,7 @@ void GameplayState::render(sf::RenderTarget& target)
 
     target.setView(previousView);
     renderHud(target);
+    renderBossHealthBar(target);
     renderCrosshair(target);
 }
 
@@ -236,6 +241,7 @@ void GameplayState::updateRoomEncounters()
         if (startingRoomIndex_ && *roomIndex == *startingRoomIndex_) {
             enemies_.clear();
             projectiles_.clear();
+            finalBoss_.reset();
             currentWave_ = 0;
             waitingForWeaponPickup_ = false;
             weaponPickup_.reset();
@@ -257,6 +263,11 @@ void GameplayState::spawnRoomEnemies(std::size_t roomIndex)
 {
     enemies_.clear();
     projectiles_.clear();
+
+    if (isFinalRoom(roomIndex)) {
+        spawnFinalBoss(roomIndex);
+        return;
+    }
 
     const int roomBonus = static_cast<int>(roomIndex);
     const int triangleCount = 2 + roomBonus;
@@ -326,8 +337,201 @@ sf::Vector2f GameplayState::randomSpawnPosition(std::size_t roomIndex)
     return fallback;
 }
 
+void GameplayState::spawnFinalBoss(std::size_t roomIndex)
+{
+    FinalBoss boss;
+    boss.body.setRadius(56.0f);
+    boss.body.setPointCount(8);
+    boss.body.setOrigin({56.0f, 56.0f});
+    boss.body.setPosition(map_.roomCenter(roomIndex));
+    boss.body.setFillColor(sf::Color(190, 25, 25));
+    boss.body.setOutlineColor(sf::Color::White);
+    boss.body.setOutlineThickness(3.0f);
+    boss.state = BossAttackState::Cooldown;
+    boss.stateTimer = 1.0f;
+    finalBoss_ = boss;
+}
+
+void GameplayState::updateFinalBoss(float deltaSeconds)
+{
+    if (!finalBoss_) {
+        return;
+    }
+
+    FinalBoss& boss = *finalBoss_;
+    boss.stateTimer -= deltaSeconds;
+
+    switch (boss.state) {
+    case BossAttackState::Cooldown:
+        if (boss.stateTimer <= 0.0f) {
+            chooseFinalBossAttack();
+        }
+        break;
+
+    case BossAttackState::RangedBurst:
+        boss.shootTimer -= deltaSeconds;
+        if (boss.shootTimer <= 0.0f) {
+            const sf::Vector2f direction = normalized(player_.position() - boss.body.getPosition());
+            if (direction.x != 0.0f || direction.y != 0.0f) {
+                projectiles_.push_back(makeEnemyProjectile(boss.body.getPosition(), direction));
+            }
+            boss.shootTimer = 0.16f;
+        }
+        if (boss.stateTimer <= 0.0f) {
+            boss.state = BossAttackState::Cooldown;
+            boss.stateTimer = 0.75f;
+        }
+        break;
+
+    case BossAttackState::Dash: {
+        const sf::Vector2f movement = boss.dashDirection * 520.0f * deltaSeconds;
+        const sf::Vector2f oldPosition = boss.body.getPosition();
+        boss.body.move(movement);
+
+        if (map_.collides(boss.body.getGlobalBounds()) ||
+            distance(boss.body.getPosition(), boss.dashTarget) < 12.0f ||
+            boss.stateTimer <= 0.0f) {
+            if (map_.collides(boss.body.getGlobalBounds())) {
+                boss.body.setPosition(oldPosition);
+            }
+            boss.state = BossAttackState::Cooldown;
+            boss.stateTimer = 0.85f;
+        }
+
+        if (!boss.dashHitPlayer && boss.body.getGlobalBounds().intersects(player_.bounds())) {
+            player_.applyDamage({20.0f, DamageType::Melee, false});
+            boss.dashHitPlayer = true;
+        }
+        break;
+    }
+
+    case BossAttackState::LaserWarning:
+        if (boss.stateTimer <= 0.0f) {
+            boss.state = BossAttackState::LaserBeam;
+            boss.stateTimer = 1.0f;
+            boss.laserHitPlayer = false;
+        }
+        break;
+
+    case BossAttackState::LaserBeam:
+        if (!boss.laserHitPlayer &&
+            laserHitsRectangle(boss.body.getPosition(), boss.laserDirection, 1400.0f, player_.bounds())) {
+            player_.applyDamage({20.0f, DamageType::Laser, false});
+            boss.laserHitPlayer = true;
+        }
+        if (boss.stateTimer <= 0.0f) {
+            boss.state = BossAttackState::Cooldown;
+            boss.stateTimer = 0.9f;
+        }
+        break;
+    }
+}
+
+void GameplayState::chooseFinalBossAttack()
+{
+    if (!finalBoss_) {
+        return;
+    }
+
+    FinalBoss& boss = *finalBoss_;
+    const int randomAttack = std::rand() % 3;
+
+    switch (randomAttack) {
+    case 0:
+        boss.state = BossAttackState::RangedBurst;
+        boss.stateTimer = 2.4f;
+        boss.shootTimer = 0.0f;
+        break;
+
+    case 1:
+        boss.state = BossAttackState::Dash;
+        boss.stateTimer = 1.2f;
+        boss.dashHitPlayer = false;
+        // The dash target is a coordinate snapshot: the boss reads the player's
+        // exact position once here, then keeps dashing toward that saved point.
+        boss.dashTarget = player_.position();
+        boss.dashDirection = normalized(boss.dashTarget - boss.body.getPosition());
+        break;
+
+    default:
+        boss.state = BossAttackState::LaserWarning;
+        boss.stateTimer = 1.5f;
+        boss.laserHitPlayer = false;
+        boss.laserDirection = normalized(player_.position() - boss.body.getPosition());
+        if (boss.laserDirection.x == 0.0f && boss.laserDirection.y == 0.0f) {
+            boss.laserDirection = {1.0f, 0.0f};
+        }
+        break;
+    }
+}
+
+void GameplayState::drawFinalBossLaser(sf::RenderTarget& target)
+{
+    if (!finalBoss_) {
+        return;
+    }
+
+    const FinalBoss& boss = *finalBoss_;
+    float thickness = 0.0f;
+    sf::Color color = sf::Color::Transparent;
+
+    if (boss.state == BossAttackState::LaserWarning) {
+        thickness = 4.0f;
+        color = sf::Color(230, 20, 20, 170);
+    } else if (boss.state == BossAttackState::LaserBeam) {
+        thickness = 40.0f;
+        color = sf::Color(255, 230, 20, 220);
+    } else {
+        return;
+    }
+
+    sf::RectangleShape laser({1400.0f, thickness});
+    laser.setOrigin({0.0f, thickness * 0.5f});
+    laser.setPosition(boss.body.getPosition());
+    laser.setRotation(std::atan2(boss.laserDirection.y, boss.laserDirection.x) * 180.0f / kPi);
+    laser.setFillColor(color);
+    target.draw(laser);
+}
+
+bool GameplayState::isFinalRoom(std::size_t roomIndex) const
+{
+    return map_.roomCount() > 0 && roomIndex == map_.roomCount() - 1;
+}
+
+sf::FloatRect GameplayState::bossBounds() const
+{
+    if (!finalBoss_) {
+        return {};
+    }
+
+    return finalBoss_->body.getGlobalBounds();
+}
+
+void GameplayState::damageBoss(const Damage& damage)
+{
+    if (!finalBoss_) {
+        return;
+    }
+
+    finalBoss_->health -= damage.amount;
+    if (finalBoss_->health > 0.0f) {
+        return;
+    }
+
+    finalBoss_.reset();
+    map_.unlockDoors();
+    currentWave_ = 3;
+    waitingForWeaponPickup_ = false;
+
+    if (currentRoomIndex_ && *currentRoomIndex_ < roomEncounters_.size()) {
+        roomEncounters_[*currentRoomIndex_].cleared = true;
+    }
+}
+
 void GameplayState::updateEnemies(float deltaSeconds)
 {
+    updateFinalBoss(deltaSeconds);
+
     for (auto& enemy : enemies_) {
         enemy.updateAgainstPlayer(player_.position(), deltaSeconds, projectiles_);
 
@@ -377,6 +581,15 @@ void GameplayState::updateProjectiles(float deltaSeconds)
             }
 
             if (projectile.owner == ProjectileOwner::Player) {
+                if (finalBoss_ && bounds.intersects(bossBounds())) {
+                    if (projectile.kind == ProjectileKind::Bazooka) {
+                        createExplosion(projectile.position);
+                    } else {
+                        damageBoss(projectile.damage);
+                    }
+                    return true;
+                }
+
                 for (auto& enemy : enemies_) {
                     if (bounds.intersects(enemy.bounds())) {
                         if (projectile.kind == ProjectileKind::Bazooka) {
@@ -461,6 +674,10 @@ void GameplayState::updateWaves(float deltaSeconds)
         weaponSpawnTextTimer_ -= deltaSeconds;
     }
 
+    if (finalBoss_) {
+        return;
+    }
+
     if (currentWave_ == 1 && enemies_.empty() && !waitingForWeaponPickup_ && !weaponPickup_) {
         startWave(2);
         return;
@@ -520,7 +737,11 @@ void GameplayState::startWave(int waveNumber)
     map_.lockRoomDoors(roomIndex);
     spawnRoomEnemies(roomIndex);
 
-    waveText_.setString("Wave " + std::to_string(waveNumber));
+    if (isFinalRoom(roomIndex)) {
+        waveText_.setString("Final Boss");
+    } else {
+        waveText_.setString("Wave " + std::to_string(waveNumber));
+    }
     const sf::FloatRect textBounds = waveText_.getLocalBounds();
     const sf::Vector2u windowSize = context_.window->getSize();
     waveText_.setOrigin({textBounds.left + textBounds.width * 0.5f, textBounds.top + textBounds.height * 0.5f});
@@ -575,6 +796,9 @@ void GameplayState::createExplosion(sf::Vector2f position)
             enemy.applyDamage({30.0f, DamageType::Explosion, false});
         }
     }
+    if (finalBoss_ && distance(position, rectangleCenter(bossBounds())) <= 120.0f) {
+        damageBoss({30.0f, DamageType::Explosion, false});
+    }
 
     for (int i = 0; i < 16; ++i) {
         const float angle = static_cast<float>(i) * 2.0f * kPi / 16.0f;
@@ -603,6 +827,9 @@ void GameplayState::fireLaser(const Projectile& laserShot)
         if (laserHitsRectangle(laserShot.position, direction, length, enemy.bounds())) {
             enemy.applyDamage(laserShot.damage);
         }
+    }
+    if (finalBoss_ && laserHitsRectangle(laserShot.position, direction, length, bossBounds())) {
+        damageBoss(laserShot.damage);
     }
 
     LaserEffect laserEffect;
@@ -647,6 +874,42 @@ void GameplayState::renderHud(sf::RenderTarget& target)
         target.draw(weaponSpawnText_);
     }
 
+    target.setView(previousView);
+}
+
+void GameplayState::renderBossHealthBar(sf::RenderTarget& target)
+{
+    if (!finalBoss_) {
+        return;
+    }
+
+    const sf::View previousView = target.getView();
+    target.setView(target.getDefaultView());
+
+    const float barWidth = 360.0f;
+    const float barHeight = 18.0f;
+    const sf::Vector2u windowSize = context_.window->getSize();
+    const sf::Vector2f position{
+        static_cast<float>(windowSize.x) * 0.5f - barWidth * 0.5f,
+        48.0f
+    };
+
+    sf::RectangleShape outline({barWidth, barHeight});
+    outline.setPosition(position);
+    outline.setFillColor(sf::Color::Transparent);
+    outline.setOutlineColor(sf::Color::White);
+    outline.setOutlineThickness(2.0f);
+
+    // Health bar formula:
+    // current health divided by maximum health gives a value from 0 to 1.
+    // Multiplying by the full bar width converts that percentage into pixels.
+    const float healthPercent = std::max(0.0f, finalBoss_->health / finalBoss_->maxHealth);
+    sf::RectangleShape inner({barWidth * healthPercent, barHeight});
+    inner.setPosition(position);
+    inner.setFillColor(sf::Color(220, 35, 35));
+
+    target.draw(inner);
+    target.draw(outline);
     target.setView(previousView);
 }
 
