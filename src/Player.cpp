@@ -1,6 +1,7 @@
 #include "Player.hpp"
 
 #include <cmath>
+#include <string_view>
 
 namespace dungeon {
 
@@ -159,6 +160,23 @@ void Player::addRangedWeapon(std::unique_ptr<IRangedWeapon> weapon)
     }
 }
 
+void Player::replaceActiveRangedWeapon(std::unique_ptr<IRangedWeapon> weapon)
+{
+    if (!weapon) {
+        return;
+    }
+
+    reloadTimer_ = 0.0f;
+
+    if (rangedWeapons_.empty()) {
+        rangedWeapons_.push_back(std::move(weapon));
+        activeRangedWeaponIndex_ = 0;
+        return;
+    }
+
+    rangedWeapons_[activeRangedWeaponIndex_] = std::move(weapon);
+}
+
 void Player::selectRangedWeapon(std::size_t index)
 {
     if (index < rangedWeapons_.size()) {
@@ -221,6 +239,24 @@ int Player::activeMagazineSize() const
 bool Player::isReloading() const
 {
     return reloadTimer_ > 0.0f;
+}
+
+WeaponType Player::activeWeaponType() const
+{
+    if (rangedWeapons_.empty()) {
+        return WeaponType::Melee;
+    }
+
+    return rangedWeapons_[activeRangedWeaponIndex_]->type();
+}
+
+std::string_view Player::activeWeaponName() const
+{
+    if (rangedWeapons_.empty()) {
+        return "None";
+    }
+
+    return rangedWeapons_[activeRangedWeaponIndex_]->displayName();
 }
 
 }

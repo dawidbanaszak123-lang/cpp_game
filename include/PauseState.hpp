@@ -3,6 +3,10 @@
 #include "GameContext.hpp"
 #include "IState.hpp"
 
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/Text.hpp>
+
 namespace dungeon {
 
 class PauseState final : public IState {
@@ -19,6 +23,15 @@ public:
 
 private:
     GameContext& context_;
+    sf::Font font_;
+    sf::RectangleShape background_;
+    sf::Text titleText_;
+    sf::Text resumeText_;
+    sf::Text exitText_;
+    int selectedOption_{0};
+
+    void updateTextColors();
+    void chooseSelectedOption();
 };
 
 }

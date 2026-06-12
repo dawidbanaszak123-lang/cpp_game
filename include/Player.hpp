@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 namespace dungeon {
@@ -35,6 +36,7 @@ public:
     [[nodiscard]] std::optional<Projectile> tryFireRangedWeapon(sf::Vector2f target);
     void equipMeleeWeapon(std::unique_ptr<IMeleeWeapon> weapon);
     void addRangedWeapon(std::unique_ptr<IRangedWeapon> weapon);
+    void replaceActiveRangedWeapon(std::unique_ptr<IRangedWeapon> weapon);
     void selectRangedWeapon(std::size_t index);
     void startReload();
 
@@ -45,6 +47,8 @@ public:
     [[nodiscard]] int activeAmmo() const;
     [[nodiscard]] int activeMagazineSize() const;
     [[nodiscard]] bool isReloading() const;
+    [[nodiscard]] WeaponType activeWeaponType() const;
+    [[nodiscard]] std::string_view activeWeaponName() const;
 
 private:
     sf::RectangleShape body_;

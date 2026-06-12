@@ -7,8 +7,8 @@ enum class WeaponType {
     Rifle,
     Revolver,
     Minigun,
-    Lasergun,
-    GrenadeLauncher
+    Laser,
+    Bazooka
 };
 
 }
