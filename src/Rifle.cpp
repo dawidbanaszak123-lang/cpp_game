@@ -1,5 +1,4 @@
 #include "Rifle.hpp"
-
 #include "Projectile.hpp"
 
 namespace dungeon {

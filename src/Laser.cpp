@@ -1,5 +1,4 @@
 #include "Laser.hpp"
-
 #include "Projectile.hpp"
 
 namespace dungeon {

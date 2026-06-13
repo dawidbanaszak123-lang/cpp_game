@@ -1,7 +1,5 @@
 #include "PauseState.hpp"
-
 #include "StateStack.hpp"
-
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>

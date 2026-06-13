@@ -1,5 +1,4 @@
 #include "MainMenuState.hpp"
-
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Window/Mouse.hpp>
 

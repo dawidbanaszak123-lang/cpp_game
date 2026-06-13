@@ -1,5 +1,4 @@
 #include "Enemy.hpp"
-
 #include <algorithm>
 #include <cmath>
 
@@ -12,16 +11,17 @@ namespace {
     const float length = std::sqrt(vector.x * vector.x + vector.y * vector.y);
     if (length <= 0.0f) {
         return {};
-    }
+    }// Normalizacja wektora do długości jednostkowej i blokada przed dzieleniem przez zero
 
     return {vector.x / length, vector.y / length};
 }
+
 
 [[nodiscard]] float distance(sf::Vector2f a, sf::Vector2f b)
 {
     const sf::Vector2f difference = a - b;
     return std::sqrt(difference.x * difference.x + difference.y * difference.y);
-}
+} // odległośc między dwoma punktami na oknie
 
 [[nodiscard]] float dot(sf::Vector2f a, sf::Vector2f b)
 {
@@ -69,7 +69,7 @@ namespace {
 }
 
 }
-
+//statystyki
 Enemy::Enemy(EnemyType type)
     : type_(type)
 {
@@ -122,7 +122,7 @@ Enemy Enemy::createLaser(sf::Vector2f position)
     return enemy;
 }
 
-void Enemy::update(float deltaSeconds)
+void Enemy::update(float deltaSeconds)//cooldown ale dla enemy
 {
     if (shootCooldownRemaining_ > 0.0f) {
         shootCooldownRemaining_ -= deltaSeconds;
@@ -132,7 +132,7 @@ void Enemy::update(float deltaSeconds)
     }
 }
 
-void Enemy::render(sf::RenderTarget& target)
+void Enemy::render(sf::RenderTarget& target)//render dla lasera
 {
     if (type_ == EnemyType::Laser && laserState_ == 1) {
         drawLaser(target, sf::Color(220, 30, 30, 160), 6.0f);
@@ -153,7 +153,7 @@ void Enemy::setPosition(sf::Vector2f position)
     body_->setPosition(position);
 }
 
-void Enemy::applyDamage(const Damage& damage)
+void Enemy::applyDamage(const Damage& damage)// Odejmowanie punktów życia o wartość obrażeń z blokadą do zera
 {
     health_ -= damage.amount;
     if (health_ < 0.0f) {
@@ -199,7 +199,7 @@ void Enemy::updateAgainstPlayer(sf::Vector2f playerPosition, float deltaSeconds,
     } else if (type_ == EnemyType::Chaser) {
         updateChaser(playerPosition, deltaSeconds);
     }
-}
+}// Wywołanie aktualizacji timerów i rozpoczecia akcji przypisanej
 
 sf::FloatRect Enemy::bounds() const
 {
@@ -223,7 +223,7 @@ bool Enemy::laserCanDamagePlayer(const sf::FloatRect& playerBounds) const
     const sf::Vector2f closestPoint = position() + laserDirection_ * projection;
     const float playerRadius = std::max(playerBounds.width, playerBounds.height) * 0.5f;
     return distance(center, closestPoint) <= playerRadius + 12.0f;
-}
+}//sprawdza czy laser trafil i zdejmuje hp
 
 void Enemy::markLaserHitPlayer()
 {
@@ -232,8 +232,6 @@ void Enemy::markLaserHitPlayer()
 
 sf::Vector2f Enemy::directionTo(sf::Vector2f target) const
 {
-    // Direction is target minus current position. Normalizing keeps only the
-    // direction, so speed and damage are independent of distance to the player.
     return normalized(target - position());
 }
 
@@ -291,8 +289,6 @@ void Enemy::updateLaser(sf::Vector2f playerPosition, float deltaSeconds)
 void Enemy::updateChaser(sf::Vector2f playerPosition, float deltaSeconds)
 {
     const sf::Vector2f direction = directionTo(playerPosition);
-    // The melee enemy tracks the player by moving a small step along the
-    // normalized direction every frame.
     body_->move(direction * moveSpeed_ * deltaSeconds);
 }
 

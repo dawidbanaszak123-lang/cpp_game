@@ -1,5 +1,4 @@
 #include "StateStack.hpp"
-
 #include <algorithm>
 
 namespace dungeon {

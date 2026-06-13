@@ -1,5 +1,4 @@
 #include "PostGameStatsState.hpp"
-
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>

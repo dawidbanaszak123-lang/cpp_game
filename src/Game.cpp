@@ -1,10 +1,8 @@
 #include "Game.hpp"
-
 #include "GameplayState.hpp"
 #include "MainMenuState.hpp"
 #include "PostGameStatsState.hpp"
 #include "StateStack.hpp"
-
 #include <SFML/Window/Event.hpp>
 
 namespace dungeon {

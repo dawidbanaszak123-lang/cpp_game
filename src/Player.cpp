@@ -1,5 +1,4 @@
 #include "Player.hpp"
-
 #include <cmath>
 #include <string_view>
 

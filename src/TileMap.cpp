@@ -1,5 +1,4 @@
 #include "TileMap.hpp"
-
 #include <algorithm>
 #include <cstdlib>
 

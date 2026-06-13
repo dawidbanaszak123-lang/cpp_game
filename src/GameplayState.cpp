@@ -1,5 +1,4 @@
 #include "GameplayState.hpp"
-
 #include "Bazooka.hpp"
 #include "Laser.hpp"
 #include "PauseState.hpp"
@@ -7,7 +6,6 @@
 #include "Rifle.hpp"
 #include "Revolver.hpp"
 #include "StateStack.hpp"
-
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Window/Keyboard.hpp>
