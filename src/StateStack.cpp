@@ -3,6 +3,7 @@
 
 namespace dungeon {
 
+// Dodanie nowego stanu na wierzch stosu.
 void StateStack::push(StatePtr state)
 {
     if (state) {
@@ -11,6 +12,7 @@ void StateStack::push(StatePtr state)
     }
 }
 
+// Usunięcie aktywnego stanu ze stosu.
 void StateStack::pop()
 {
     if (states_.empty()) {
@@ -21,6 +23,7 @@ void StateStack::pop()
     states_.pop_back();
 }
 
+// Czyszczenie stosu przez poprawne zamykanie stanów.
 void StateStack::clear()
 {
     while (!states_.empty()) {
@@ -28,6 +31,7 @@ void StateStack::clear()
     }
 }
 
+// Przekazanie zdarzenia tylko do aktywnego stanu.
 void StateStack::handleEvent(const sf::Event& event)
 {
     if (!states_.empty()) {
@@ -35,6 +39,7 @@ void StateStack::handleEvent(const sf::Event& event)
     }
 }
 
+// Aktualizacja stanów od góry stosu do pierwszej blokady.
 void StateStack::update(float deltaSeconds)
 {
     for (auto it = states_.rbegin(); it != states_.rend(); ++it) {
@@ -45,6 +50,7 @@ void StateStack::update(float deltaSeconds)
     }
 }
 
+// Rysowanie widocznych stanów w poprawnej kolejności.
 void StateStack::render(sf::RenderTarget& target)
 {
     auto firstVisible = states_.begin();
@@ -60,6 +66,7 @@ void StateStack::render(sf::RenderTarget& target)
     }
 }
 
+// Sprawdzenie, czy stos nie zawiera stanów.
 bool StateStack::empty() const
 {
     return states_.empty();

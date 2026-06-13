@@ -10,6 +10,7 @@ constexpr const char* kSystemFontPath = "C:/Windows/Fonts/arial.ttf";
 
 namespace dungeon {
 
+// Utworzenie tekstów menu i zapisanie akcji przycisków.
 MainMenuState::MainMenuState(GameContext& context, std::function<void()> onPlay, std::function<void()> onExit)
     : context_(context)
     , onPlay_(std::move(onPlay))
@@ -23,8 +24,10 @@ void MainMenuState::onEnter() {}
 
 void MainMenuState::onExit() {}
 
+// Obsługa wyboru opcji z klawiatury i myszy.
 void MainMenuState::handleEvent(const sf::Event& event)
 {
+    // Ruch myszy aktualizuje podświetloną opcję.
     if (event.type == sf::Event::MouseMoved) {
         const sf::Vector2f mousePosition{static_cast<float>(event.mouseMove.x), static_cast<float>(event.mouseMove.y)};
         if (enterOptionContains(mousePosition)) {
@@ -37,6 +40,7 @@ void MainMenuState::handleEvent(const sf::Event& event)
         return;
     }
 
+    // Kliknięcie myszy uruchamia wskazaną opcję.
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         const sf::Vector2f mousePosition{static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y)};
         if (enterOptionContains(mousePosition)) {
@@ -49,6 +53,7 @@ void MainMenuState::handleEvent(const sf::Event& event)
         return;
     }
 
+    // Zdarzenia inne niż klawiatura nie zmieniają menu.
     if (event.type != sf::Event::KeyPressed) {
         return;
     }
@@ -64,6 +69,7 @@ void MainMenuState::handleEvent(const sf::Event& event)
 
 void MainMenuState::update(float) {}
 
+// Rysowanie tekstów głównego menu.
 void MainMenuState::render(sf::RenderTarget& target)
 {
     target.draw(titleText_);
@@ -72,16 +78,19 @@ void MainMenuState::render(sf::RenderTarget& target)
     target.draw(leaveText_);
 }
 
+// Blokowanie aktualizacji stanów pod menu.
 bool MainMenuState::allowsUnderlyingUpdate() const
 {
     return false;
 }
 
+// Blokowanie rysowania stanów pod menu.
 bool MainMenuState::allowsUnderlyingRender() const
 {
     return false;
 }
 
+// Ustawienie napisów, pozycji i kolorów menu.
 void MainMenuState::rebuildMenuText()
 {
     titleText_.setFont(font_);
@@ -108,6 +117,7 @@ void MainMenuState::rebuildMenuText()
     updateTextColors();
 }
 
+// Przesunięcie zaznaczenia z zawijaniem indeksu.
 void MainMenuState::moveSelection(int offset)
 {
     const int size = 2;
@@ -115,6 +125,7 @@ void MainMenuState::moveSelection(int offset)
     updateTextColors();
 }
 
+// Uruchomienie akcji aktualnie zaznaczonej opcji.
 void MainMenuState::selectCurrentOption()
 {
     if (selectedIndex_ == 0) {
@@ -124,6 +135,7 @@ void MainMenuState::selectCurrentOption()
     }
 }
 
+// Ustawienie kolorów zależnie od zaznaczenia.
 void MainMenuState::updateTextColors()
 {
     enterText_.setFillColor(selectedIndex_ == 0 ? sf::Color(255, 220, 80) : sf::Color::White);
@@ -131,6 +143,7 @@ void MainMenuState::updateTextColors()
     leaveText_.setFillColor(selectedIndex_ == 1 ? sf::Color(180, 180, 180) : sf::Color::White);
 }
 
+// Sprawdzenie trafienia w złożony napis wejścia.
 bool MainMenuState::enterOptionContains(sf::Vector2f point) const
 {
     return enterText_.getGlobalBounds().contains(point) || dungeonText_.getGlobalBounds().contains(point);

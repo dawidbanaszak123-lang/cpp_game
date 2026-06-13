@@ -14,6 +14,7 @@ constexpr const char* kSystemFontPath = "C:/Windows/Fonts/arial.ttf";
 
 }
 
+// Przygotowanie tekstów i tła ekranu pauzy.
 PauseState::PauseState(GameContext& context) : context_(context)
 {
     font_.loadFromFile(kSystemFontPath);
@@ -37,6 +38,7 @@ PauseState::PauseState(GameContext& context) : context_(context)
     updateTextColors();
 }
 
+// Włączenie kursora po wejściu w pauzę.
 void PauseState::onEnter()
 {
     if (context_.window) {
@@ -44,6 +46,7 @@ void PauseState::onEnter()
     }
 }
 
+// Ukrycie kursora po wyjściu z pauzy.
 void PauseState::onExit()
 {
     if (context_.window) {
@@ -51,8 +54,10 @@ void PauseState::onExit()
     }
 }
 
+// Obsługa klawiatury i myszy w menu pauzy.
 void PauseState::handleEvent(const sf::Event& event)
 {
+    // Escape zamyka ekran pauzy.
     if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
         context_.states->pop();
     } else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Up) {
@@ -81,6 +86,7 @@ void PauseState::handleEvent(const sf::Event& event)
 
 void PauseState::update(float) {}
 
+// Rysowanie nakładki pauzy na domyślnym widoku.
 void PauseState::render(sf::RenderTarget& target)
 {
     const sf::View previousView = target.getView();
@@ -106,12 +112,14 @@ void PauseState::render(sf::RenderTarget& target)
 bool PauseState::allowsUnderlyingUpdate() const { return false; }
 bool PauseState::allowsUnderlyingRender() const { return true; }
 
+// Podświetlenie aktualnie wybranej opcji.
 void PauseState::updateTextColors()
 {
     resumeTriangle_.setFillColor(selectedOption_ == 0 ? sf::Color::Yellow : sf::Color::White);
     exitText_.setFillColor(selectedOption_ == 1 ? sf::Color::Yellow : sf::Color::White);
 }
 
+// Wykonanie akcji dla zaznaczonej opcji.
 void PauseState::chooseSelectedOption()
 {
     if (selectedOption_ == 0) {

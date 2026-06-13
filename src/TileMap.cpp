@@ -47,6 +47,7 @@ TileMap::TileMap()
     generateRoom(25, 18);
 }
 
+// Generowanie układu pokoi, korytarzy i ścian mapy.
 void TileMap::generateRoom(std::size_t, std::size_t)
 {
     const int mapWidth = mapMargin * 2 + 4 * roomSize + 3 * roomGap;
@@ -59,6 +60,7 @@ void TileMap::generateRoom(std::size_t, std::size_t)
     doorTiles_.clear();
     activeDoorTiles_.clear();
 
+    // Oznaczanie prostokątnego obszaru jako dostępnego do chodzenia.
     const auto carveRect = [&walkable](int left, int top, int width, int height) {
         for (int row = top; row < top + height; ++row) {
             for (int column = left; column < left + width; ++column) {
@@ -67,12 +69,14 @@ void TileMap::generateRoom(std::size_t, std::size_t)
         }
     };
 
+    // Dodanie pokoju do listy i wycięcie go w mapie.
     const auto carveRoom = [this, &carveRect](int gridX, int gridY) {
         const RoomRect room = roomRect(gridX, gridY);
         rooms_.push_back(toIntRect(room));
         carveRect(room.left, room.top, room.width, room.height);
     };
 
+    // Tworzenie poziomego korytarza między pokojami.
     const auto carveHorizontalCorridor = [&carveRect](int leftRoomX, int roomY, int rightRoomX) {
         const sf::Vector2i leftCenter = roomCenterTile(leftRoomX, roomY);
         const sf::Vector2i rightCenter = roomCenterTile(rightRoomX, roomY);
@@ -81,6 +85,7 @@ void TileMap::generateRoom(std::size_t, std::size_t)
         carveRect(left, leftCenter.y - corridorWidth / 2, width, corridorWidth);
     };
 
+    // Tworzenie pionowego korytarza między pokojami.
     const auto carveVerticalCorridor = [&carveRect](int roomX, int lowerRoomY, int upperRoomY) {
         const sf::Vector2i lowerCenter = roomCenterTile(roomX, lowerRoomY);
         const sf::Vector2i upperCenter = roomCenterTile(roomX, upperRoomY);
@@ -106,12 +111,14 @@ void TileMap::generateRoom(std::size_t, std::size_t)
     carveVerticalCorridor(2, 0, 1);
     carveVerticalCorridor(2, 1, 2);
 
+    // Zapisanie pionowych pól drzwi dla danego pokoju.
     const auto addVerticalDoor = [this](int column, int centerY, std::size_t roomIndex) {
         for (int row = centerY - corridorWidth / 2; row < centerY + corridorWidth / 2; ++row) {
             doorTiles_.push_back({column, row, roomIndex});
         }
     };
 
+    // Zapisanie poziomych pól drzwi dla danego pokoju.
     const auto addHorizontalDoor = [this](int centerX, int row, std::size_t roomIndex) {
         for (int column = centerX - corridorWidth / 2; column < centerX + corridorWidth / 2; ++column) {
             doorTiles_.push_back({column, row, roomIndex});
@@ -143,6 +150,7 @@ void TileMap::generateRoom(std::size_t, std::size_t)
     addVerticalConnectionDoors(2, 0, 1, 2, 4);
     addVerticalConnectionDoors(2, 1, 2, 4, 5);
 
+    // Zamiana pól przy podłodze na ściany.
     for (int row = 0; row < mapHeight; ++row) {
         for (int column = 0; column < mapWidth; ++column) {
             if (walkable[static_cast<std::size_t>(row)][static_cast<std::size_t>(column)] == 1) {
@@ -168,6 +176,7 @@ void TileMap::generateRoom(std::size_t, std::size_t)
     }
 }
 
+// Rysowanie kafelków mapy według ich typu.
 void TileMap::render(sf::RenderTarget& target) const
 {
     sf::RectangleShape tile({tileSize_, tileSize_});
@@ -188,6 +197,7 @@ void TileMap::render(sf::RenderTarget& target) const
     }
 }
 
+// Sprawdzanie kolizji prostokąta ze ścianami mapy.
 bool TileMap::collides(const sf::FloatRect& bounds) const
 {
     const int left = static_cast<int>(bounds.left / tileSize_);
@@ -206,6 +216,7 @@ bool TileMap::collides(const sf::FloatRect& bounds) const
     return false;
 }
 
+// Wyliczenie pozycji startowej na środku pierwszego pokoju.
 sf::Vector2f TileMap::spawnPosition() const
 {
     const sf::Vector2i spawnTile = roomCenterTile(0, 0);
@@ -215,6 +226,7 @@ sf::Vector2f TileMap::spawnPosition() const
     };
 }
 
+// Wyszukanie pokoju zawierającego podany punkt.
 std::optional<std::size_t> TileMap::roomAt(sf::Vector2f position) const
 {
     const int column = static_cast<int>(position.x / tileSize_);
@@ -229,6 +241,7 @@ std::optional<std::size_t> TileMap::roomAt(sf::Vector2f position) const
     return std::nullopt;
 }
 
+// Wyszukanie pokoju mieszczącego cały prostokąt.
 std::optional<std::size_t> TileMap::roomContaining(const sf::FloatRect& bounds) const
 {
     constexpr float edgeEpsilon = 0.001f;
@@ -248,6 +261,7 @@ std::optional<std::size_t> TileMap::roomContaining(const sf::FloatRect& bounds) 
     return std::nullopt;
 }
 
+// Pobranie środka pokoju albo pozycji startowej przy błędnym indeksie.
 sf::Vector2f TileMap::roomCenter(std::size_t roomIndex) const
 {
     if (roomIndex >= rooms_.size()) {
@@ -261,6 +275,7 @@ sf::Vector2f TileMap::roomCenter(std::size_t roomIndex) const
     };
 }
 
+// Pobranie granic pokoju w pikselach.
 sf::FloatRect TileMap::roomBounds(std::size_t roomIndex) const
 {
     if (roomIndex >= rooms_.size()) {
@@ -276,11 +291,13 @@ sf::FloatRect TileMap::roomBounds(std::size_t roomIndex) const
     };
 }
 
+// Zwrócenie liczby zapisanych pokoi.
 std::size_t TileMap::roomCount() const
 {
     return rooms_.size();
 }
 
+// Zablokowanie drzwi przypisanych do aktywnego pokoju.
 void TileMap::lockRoomDoors(std::size_t roomIndex)
 {
     unlockDoors();
@@ -301,6 +318,7 @@ void TileMap::lockRoomDoors(std::size_t roomIndex)
     }
 }
 
+// Przywrócenie aktywnych drzwi do zwykłej podłogi.
 void TileMap::unlockDoors()
 {
     for (const sf::Vector2i& tilePosition : activeDoorTiles_) {
@@ -322,11 +340,13 @@ void TileMap::unlockDoors()
     activeDoorTiles_.clear();
 }
 
+// Zwrócenie rozmiaru pojedynczego kafelka.
 float TileMap::tileSize() const
 {
     return tileSize_;
 }
 
+// Sprawdzenie, czy wskazany kafelek jest ścianą lub zamkniętymi drzwiami.
 bool TileMap::isWall(int column, int row) const
 {
     if (row < 0 || column < 0) {

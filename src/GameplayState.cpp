@@ -68,6 +68,7 @@ constexpr float kPi = 3.14159265f;
 
 }
 
+// Przygotowanie mapy, postaci, broni i elementów interfejsu.
 GameplayState::GameplayState(GameContext& context)
     : context_(context)
 {
@@ -111,18 +112,22 @@ GameplayState::GameplayState(GameContext& context)
     weaponSpawnText_.setPosition({460.0f, 12.0f});
 }
 
+// Ukrycie kursora po wejściu do rozgrywki.
 void GameplayState::onEnter()
 {
     context_.window->setMouseCursorVisible(false);
 }
 
+// Przywrócenie kursora po wyjściu z rozgrywki.
 void GameplayState::onExit()
 {
     context_.window->setMouseCursorVisible(true);
 }
 
+// Obsługa skrótów sterowania w trakcie rozgrywki.
 void GameplayState::handleEvent(const sf::Event& event)
 {
+    // Po pokazaniu końca gry wejście z klawiatury jest ignorowane.
     if (endScreenShown_) {
         return;
     }
@@ -140,8 +145,10 @@ void GameplayState::handleEvent(const sf::Event& event)
     }
 }
 
+// Aktualizacja całej logiki aktywnej rozgrywki.
 void GameplayState::update(float deltaSeconds)
 {
+    // Zatrzymanie aktualizacji po wyświetleniu ekranu końcowego.
     if (endScreenShown_) {
         return;
     }
@@ -150,6 +157,7 @@ void GameplayState::update(float deltaSeconds)
     updatePlayer(deltaSeconds);
     updateRoomEncounters();
     updateWeaponPickup();
+    // Przytrzymanie lewego przycisku myszy próbuje oddać strzał.
     if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
         const sf::Vector2i mousePixel = sf::Mouse::getPosition(*context_.window);
         const sf::Vector2f mouseWorld = context_.window->mapPixelToCoords(mousePixel, cameraView());
@@ -160,6 +168,7 @@ void GameplayState::update(float deltaSeconds)
     updateEffects(deltaSeconds);
     updateWaves(deltaSeconds);
 
+    // Brak punktów życia zgłasza przegraną.
     if (!player_.isAlive()) {
         requestEndGame(PostGameResult::Lose);
     }
@@ -167,6 +176,7 @@ void GameplayState::update(float deltaSeconds)
     showPendingEndGame();
 }
 
+// Rysowanie świata gry oraz elementów interfejsu.
 void GameplayState::render(sf::RenderTarget& target)
 {
     const sf::View previousView = target.getView();
@@ -211,6 +221,7 @@ void GameplayState::render(sf::RenderTarget& target)
 bool GameplayState::allowsUnderlyingUpdate() const { return false; }
 bool GameplayState::allowsUnderlyingRender() const { return false; }
 
+// Przesuwanie postaci z osobnym sprawdzaniem kolizji dla osi X i Y.
 void GameplayState::updatePlayer(float deltaSeconds)
 {
     const sf::Vector2f direction = readMovementInput();
@@ -233,6 +244,7 @@ void GameplayState::updatePlayer(float deltaSeconds)
     }
 }
 
+// Sprawdzanie zmiany pokoju i startu walki.
 void GameplayState::updateRoomEncounters()
 {
     const std::optional<std::size_t> roomIndex = map_.roomContaining(player_.bounds());
@@ -247,6 +259,7 @@ void GameplayState::updateRoomEncounters()
             return;
         }
 
+        // Powrót do pokoju startowego czyści aktywną walkę.
         if (startingRoomIndex_ && *roomIndex == *startingRoomIndex_) {
             enemies_.clear();
             projectiles_.clear();
@@ -260,6 +273,7 @@ void GameplayState::updateRoomEncounters()
             return;
         }
 
+        // Pierwsze wejście do pokoju uruchamia pierwszą falę.
         if (!roomEncounters_[*roomIndex].visited) {
             roomEncounters_[*roomIndex].visited = true;
             roomEncounters_[*roomIndex].cleared = false;
@@ -268,11 +282,13 @@ void GameplayState::updateRoomEncounters()
     }
 }
 
+// Tworzenie przeciwników dla wybranego pokoju.
 void GameplayState::spawnRoomEnemies(std::size_t roomIndex)
 {
     enemies_.clear();
     projectiles_.clear();
 
+    // Ostatni pokój uruchamia bossa zamiast zwykłej fali.
     if (isFinalRoom(roomIndex)) {
         spawnFinalBoss(roomIndex);
         return;
@@ -296,6 +312,7 @@ void GameplayState::spawnRoomEnemies(std::size_t roomIndex)
     addEnemies(EnemyType::HeavyRanged, circleCount, roomIndex);
 }
 
+// Dodanie wskazanej liczby przeciwników danego typu.
 void GameplayState::addEnemies(EnemyType type, int count, std::size_t roomIndex)
 {
     for (int i = 0; i < count; ++i) {
@@ -313,6 +330,7 @@ void GameplayState::addEnemies(EnemyType type, int count, std::size_t roomIndex)
     }
 }
 
+// Losowanie bezpiecznej pozycji pojawienia się przeciwnika.
 sf::Vector2f GameplayState::randomSpawnPosition(std::size_t roomIndex)
 {
     const sf::FloatRect room = map_.roomBounds(roomIndex);
@@ -322,6 +340,7 @@ sf::Vector2f GameplayState::randomSpawnPosition(std::size_t roomIndex)
         return fallback;
     }
 
+    // Kilka prób ogranicza ryzyko pojawienia się w ścianie.
     for (int attempt = 0; attempt < 200; ++attempt) {
         const int randomX = std::rand() % static_cast<int>(room.width - 96.0f);
         const int randomY = std::rand() % static_cast<int>(room.height - 96.0f);
@@ -346,6 +365,7 @@ sf::Vector2f GameplayState::randomSpawnPosition(std::size_t roomIndex)
     return fallback;
 }
 
+// Utworzenie bossa na środku finałowego pokoju.
 void GameplayState::spawnFinalBoss(std::size_t roomIndex)
 {
     FinalBoss boss;
@@ -361,6 +381,7 @@ void GameplayState::spawnFinalBoss(std::size_t roomIndex)
     finalBoss_ = boss;
 }
 
+// Aktualizacja aktualnego ataku bossa.
 void GameplayState::updateFinalBoss(float deltaSeconds)
 {
     if (!finalBoss_) {
@@ -436,6 +457,7 @@ void GameplayState::updateFinalBoss(float deltaSeconds)
     }
 }
 
+// Losowy wybór następnego ataku bossa.
 void GameplayState::chooseFinalBossAttack()
 {
     if (!finalBoss_) {
@@ -456,8 +478,7 @@ void GameplayState::chooseFinalBossAttack()
         boss.state = BossAttackState::Dash;
         boss.stateTimer = 1.2f;
         boss.dashHitPlayer = false;
-        // The dash target is a coordinate snapshot: the boss reads the player's
-        // exact position once here, then keeps dashing toward that saved point.
+        // Cel szarży jest zapamiętany tylko w chwili startu ataku.
         boss.dashTarget = player_.position();
         boss.dashDirection = normalized(boss.dashTarget - boss.body.getPosition());
         break;
@@ -474,6 +495,7 @@ void GameplayState::chooseFinalBossAttack()
     }
 }
 
+// Rysowanie ostrzeżenia lub wiązki lasera bossa.
 void GameplayState::drawFinalBossLaser(sf::RenderTarget& target)
 {
     if (!finalBoss_) {
@@ -502,11 +524,13 @@ void GameplayState::drawFinalBossLaser(sf::RenderTarget& target)
     target.draw(laser);
 }
 
+// Sprawdzenie, czy pokój jest finałowy.
 bool GameplayState::isFinalRoom(std::size_t roomIndex) const
 {
     return map_.roomCount() > 0 && roomIndex == map_.roomCount() - 1;
 }
 
+// Pobranie granic bossa albo pustego prostokąta.
 sf::FloatRect GameplayState::bossBounds() const
 {
     if (!finalBoss_) {
@@ -516,6 +540,7 @@ sf::FloatRect GameplayState::bossBounds() const
     return finalBoss_->body.getGlobalBounds();
 }
 
+// Zadanie obrażeń bossowi i zakończenie gry po jego pokonaniu.
 void GameplayState::damageBoss(const Damage& damage)
 {
     if (!finalBoss_) {
@@ -538,6 +563,7 @@ void GameplayState::damageBoss(const Damage& damage)
     }
 }
 
+// Zapisanie oczekiwanego wyniku końca gry.
 void GameplayState::requestEndGame(PostGameResult result)
 {
     if (!pendingEndGame_) {
@@ -545,6 +571,7 @@ void GameplayState::requestEndGame(PostGameResult result)
     }
 }
 
+// Pokazanie ekranu końcowego tylko raz.
 void GameplayState::showPendingEndGame()
 {
     if (endScreenShown_ || !pendingEndGame_) {
@@ -557,6 +584,7 @@ void GameplayState::showPendingEndGame()
     }
 }
 
+// Aktualizacja przeciwników i usuwanie pokonanych obiektów.
 void GameplayState::updateEnemies(float deltaSeconds)
 {
     updateFinalBoss(deltaSeconds);
@@ -581,6 +609,7 @@ void GameplayState::updateEnemies(float deltaSeconds)
         enemies_.end());
 }
 
+// Aktualizacja pocisków, kolizji i trafień.
 void GameplayState::updateProjectiles(float deltaSeconds)
 {
     for (auto& projectile : projectiles_) {
@@ -636,6 +665,7 @@ void GameplayState::updateProjectiles(float deltaSeconds)
         projectiles_.end());
 }
 
+// Aktualizacja krótkich efektów wizualnych.
 void GameplayState::updateEffects(float deltaSeconds)
 {
     for (auto& laserEffect : laserEffects_) {
@@ -694,6 +724,7 @@ void GameplayState::updateEffects(float deltaSeconds)
         explosions_.end());
 }
 
+// Obsługa przechodzenia między falami przeciwników.
 void GameplayState::updateWaves(float deltaSeconds)
 {
     if (waveTextTimer_ > 0.0f) {
@@ -707,11 +738,13 @@ void GameplayState::updateWaves(float deltaSeconds)
         return;
     }
 
+    // Po pierwszej fali od razu startuje druga fala.
     if (currentWave_ == 1 && enemies_.empty() && !waitingForWeaponPickup_ && !weaponPickup_) {
         startWave(2);
         return;
     }
 
+    // Po drugiej fali pokój zostaje wyczyszczony i pojawia się broń.
     if (currentWave_ == 2 && enemies_.empty() && !waitingForWeaponPickup_ && !weaponPickup_) {
         waitingForWeaponPickup_ = true;
         map_.unlockDoors();
@@ -726,6 +759,7 @@ void GameplayState::updateWaves(float deltaSeconds)
     }
 }
 
+// Podniesienie broni po wejściu w jej obszar.
 void GameplayState::updateWeaponPickup()
 {
     if (!weaponPickup_) {
@@ -742,6 +776,7 @@ void GameplayState::updateWeaponPickup()
     waitingForWeaponPickup_ = false;
 }
 
+// Oddanie strzału albo uruchomienie lasera.
 void GameplayState::fireProjectile(sf::Vector2f target)
 {
     if (auto projectile = player_.tryFireRangedWeapon(target)) {
@@ -753,6 +788,7 @@ void GameplayState::fireProjectile(sf::Vector2f target)
     }
 }
 
+// Start fali z zamknięciem drzwi i komunikatem na ekranie.
 void GameplayState::startWave(int waveNumber)
 {
     currentWave_ = waveNumber;
@@ -778,6 +814,7 @@ void GameplayState::startWave(int waveNumber)
     waveTextTimer_ = 2.0f;
 }
 
+// Wylosowanie i ustawienie broni do podniesienia.
 void GameplayState::spawnRandomWeapon()
 {
     int randomNumber = std::rand() % 3;
@@ -808,6 +845,7 @@ void GameplayState::spawnRandomWeapon()
     weaponSpawnTextTimer_ = 3.0f;
 }
 
+// Utworzenie wybuchu i natychmiastowych obrażeń obszarowych.
 void GameplayState::createExplosion(sf::Vector2f position)
 {
     ExplosionEffect explosion;
@@ -847,6 +885,7 @@ void GameplayState::createExplosion(sf::Vector2f position)
     explosions_.push_back(explosion);
 }
 
+// Obsługa natychmiastowego trafienia wiązką lasera.
 void GameplayState::fireLaser(const Projectile& laserShot)
 {
     const sf::Vector2f direction = normalized(laserShot.velocity);
@@ -871,6 +910,7 @@ void GameplayState::fireLaser(const Projectile& laserShot)
     laserEffects_.push_back(laserEffect);
 }
 
+// Utworzenie konkretnej broni po typie.
 std::unique_ptr<IRangedWeapon> GameplayState::makeWeapon(WeaponType type) const
 {
     if (type == WeaponType::Bazooka) {
@@ -883,6 +923,7 @@ std::unique_ptr<IRangedWeapon> GameplayState::makeWeapon(WeaponType type) const
     return std::make_unique<Rifle>();
 }
 
+// Rysowanie informacji o stanie postaci i broni.
 void GameplayState::renderHud(sf::RenderTarget& target)
 {
     const sf::View previousView = target.getView();
@@ -906,6 +947,7 @@ void GameplayState::renderHud(sf::RenderTarget& target)
     target.setView(previousView);
 }
 
+// Rysowanie paska życia bossa na ekranie.
 void GameplayState::renderBossHealthBar(sf::RenderTarget& target)
 {
     if (!finalBoss_) {
@@ -929,9 +971,7 @@ void GameplayState::renderBossHealthBar(sf::RenderTarget& target)
     outline.setOutlineColor(sf::Color::White);
     outline.setOutlineThickness(2.0f);
 
-    // Health bar formula:
-    // current health divided by maximum health gives a value from 0 to 1.
-    // Multiplying by the full bar width converts that percentage into pixels.
+    // Procent życia zamienia się na szerokość paska.
     const float healthPercent = std::max(0.0f, finalBoss_->health / finalBoss_->maxHealth);
     sf::RectangleShape inner({barWidth * healthPercent, barHeight});
     inner.setPosition(position);
@@ -942,6 +982,7 @@ void GameplayState::renderBossHealthBar(sf::RenderTarget& target)
     target.setView(previousView);
 }
 
+// Rysowanie celownika w pozycji kursora.
 void GameplayState::renderCrosshair(sf::RenderTarget& target)
 {
     const sf::View previousView = target.getView();
@@ -957,6 +998,7 @@ void GameplayState::renderCrosshair(sf::RenderTarget& target)
     target.setView(previousView);
 }
 
+// Ustawienie kamery na aktualnej pozycji postaci.
 sf::View GameplayState::cameraView() const
 {
     const sf::Vector2u windowSize = context_.window->getSize();
@@ -965,6 +1007,7 @@ sf::View GameplayState::cameraView() const
     return view;
 }
 
+// Odczyt kierunku ruchu z klawiatury.
 sf::Vector2f GameplayState::readMovementInput() const
 {
     sf::Vector2f direction{};
