@@ -23,14 +23,22 @@ namespace dungeon {
 
 class GameplayState final : public IState {
 public:
+    // Tworzy główny stan rozgrywki.
     explicit GameplayState(GameContext& context);
 
+    // Przygotowanie ekranu po wejściu do gry.
     void onEnter() override;
+    // Przywrócenie ustawień po wyjściu z gry.
     void onExit() override;
+    // Obsługa zdarzeń z klawiatury i myszy.
     void handleEvent(const sf::Event& event) override;
+    // Aktualizacja całej rozgrywki.
     void update(float deltaSeconds) override;
+    // Rysowanie mapy, gracza, przeciwników i interfejsu.
     void render(sf::RenderTarget& target) override;
+    // Blokuje aktualizację stanów pod spodem.
     [[nodiscard]] bool allowsUnderlyingUpdate() const override;
+    // Blokuje rysowanie stanów pod spodem.
     [[nodiscard]] bool allowsUnderlyingRender() const override;
 
 private:
@@ -75,8 +83,8 @@ private:
     struct FinalBoss {
         sf::CircleShape body;
         BossAttackState state{BossAttackState::Cooldown};
-        float health{350.0f};
-        float maxHealth{350.0f};
+        float health{500.0f};
+        float maxHealth{500.0f};
         float stateTimer{1.0f};
         float shootTimer{0.0f};
         bool dashHitPlayer{false};
@@ -86,35 +94,65 @@ private:
         sf::Vector2f laserDirection{1.0f, 0.0f};
     };
 
+    // Aktualizacja ruchu gracza i kolizji z mapą.
     void updatePlayer(float deltaSeconds);
+    // Sprawdzenie, czy gracz wszedł do nowego pokoju.
     void updateRoomEncounters();
+    // Tworzenie przeciwników w wybranym pokoju.
     void spawnRoomEnemies(std::size_t roomIndex);
+    // Dodanie kilku przeciwników danego typu.
     void addEnemies(EnemyType type, int count, std::size_t roomIndex);
+    // Losowanie bezpiecznego miejsca pojawienia się przeciwnika.
     [[nodiscard]] sf::Vector2f randomSpawnPosition(std::size_t roomIndex);
+    // Aktualizacja przeciwników i ich ataków.
     void updateEnemies(float deltaSeconds);
+    // Tworzenie finałowego bossa w ostatnim pokoju.
     void spawnFinalBoss(std::size_t roomIndex);
+    // Aktualizacja zachowania finałowego bossa.
     void updateFinalBoss(float deltaSeconds);
+    // Wybór następnego ataku bossa.
     void chooseFinalBossAttack();
+    // Rysowanie ostrzeżenia lub promienia lasera bossa.
     void drawFinalBossLaser(sf::RenderTarget& target);
+    // Rysowanie paska życia bossa.
     void renderBossHealthBar(sf::RenderTarget& target);
+    // Sprawdzenie, czy pokój jest ostatni.
     [[nodiscard]] bool isFinalRoom(std::size_t roomIndex) const;
+    // Pobranie obszaru kolizji bossa.
     [[nodiscard]] sf::FloatRect bossBounds() const;
+    // Zadanie obrażeń bossowi.
     void damageBoss(const Damage& damage);
+    // Zgłoszenie końca gry.
     void requestEndGame(PostGameResult result);
+    // Pokazanie ekranu końcowego, jeśli jest potrzebny.
     void showPendingEndGame();
+    // Aktualizacja pocisków i ich kolizji.
     void updateProjectiles(float deltaSeconds);
+    // Aktualizacja efektów wybuchów i laserów.
     void updateEffects(float deltaSeconds);
+    // Aktualizacja fal przeciwników.
     void updateWaves(float deltaSeconds);
+    // Obsługa podnoszenia broni z ziemi.
     void updateWeaponPickup();
+    // Wystrzelenie pocisku w stronę celu.
     void fireProjectile(sf::Vector2f target);
+    // Rozpoczęcie wybranej fali przeciwników.
     void startWave(int waveNumber);
+    // Wylosowanie broni po oczyszczeniu pokoju.
     void spawnRandomWeapon();
+    // Utworzenie efektu wybuchu.
     void createExplosion(sf::Vector2f position);
+    // Obsługa strzału laserowego gracza.
     void fireLaser(const Projectile& laserShot);
+    // Utworzenie broni danego typu.
     [[nodiscard]] std::unique_ptr<IRangedWeapon> makeWeapon(WeaponType type) const;
+    // Rysowanie informacji o życiu, broni i fali.
     void renderHud(sf::RenderTarget& target);
+    // Rysowanie celownika myszy.
     void renderCrosshair(sf::RenderTarget& target);
+    // Utworzenie widoku kamery śledzącej gracza.
     [[nodiscard]] sf::View cameraView() const;
+    // Odczyt kierunku ruchu z klawiatury.
     [[nodiscard]] sf::Vector2f readMovementInput() const;
 
     GameContext& context_;

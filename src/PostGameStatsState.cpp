@@ -13,6 +13,7 @@ constexpr const char* kSystemFontPath = "C:/Windows/Fonts/arial.ttf";
 
 }
 
+// Tworzy ekran statystyk po wygranej albo przegranej.
 PostGameStatsState::PostGameStatsState(GameContext& context, PostGameResult result)
     : context_(context)
     , result_(result)
@@ -41,6 +42,7 @@ PostGameStatsState::PostGameStatsState(GameContext& context, PostGameResult resu
     updateTextColors();
 }
 
+// Pokazuje kursor po wejściu na ekran końcowy.
 void PostGameStatsState::onEnter()
 {
     if (context_.window) {
@@ -48,8 +50,10 @@ void PostGameStatsState::onEnter()
     }
 }
 
+// Metoda wywoływana przy opuszczaniu ekranu końcowego.
 void PostGameStatsState::onExit() {}
 
+// Obsługa myszy i klawiatury na ekranie końcowym.
 void PostGameStatsState::handleEvent(const sf::Event& event)
 {
     if (event.type == sf::Event::MouseMoved) {
@@ -81,8 +85,10 @@ void PostGameStatsState::handleEvent(const sf::Event& event)
     }
 }
 
+// Ekran końcowy nie wymaga aktualizacji co klatkę.
 void PostGameStatsState::update(float) {}
 
+// Rysowanie tła, tytułu i opcji menu.
 void PostGameStatsState::render(sf::RenderTarget& target)
 {
     const sf::View previousView = target.getView();
@@ -109,9 +115,12 @@ void PostGameStatsState::render(sf::RenderTarget& target)
     target.setView(previousView);
 }
 
+// Ten stan blokuje aktualizację gry pod spodem.
 bool PostGameStatsState::allowsUnderlyingUpdate() const { return false; }
+// Ten stan blokuje rysowanie gry pod spodem.
 bool PostGameStatsState::allowsUnderlyingRender() const { return false; }
 
+// Przesuwa wybór w menu końcowym.
 void PostGameStatsState::moveSelection(int offset)
 {
     if (options_.empty()) {
@@ -123,6 +132,7 @@ void PostGameStatsState::moveSelection(int offset)
     updateTextColors();
 }
 
+// Uruchamia wybraną opcję menu końcowego.
 void PostGameStatsState::chooseSelectedOption()
 {
     if (result_ == PostGameResult::Lose && selectedIndex_ == 0) {
@@ -137,6 +147,7 @@ void PostGameStatsState::chooseSelectedOption()
     }
 }
 
+// Zmienia kolor aktualnie wybranej opcji.
 void PostGameStatsState::updateTextColors()
 {
     for (std::size_t index = 0; index < options_.size(); ++index) {
@@ -144,6 +155,7 @@ void PostGameStatsState::updateTextColors()
     }
 }
 
+// Sprawdza, czy punkt myszy jest na danej opcji.
 bool PostGameStatsState::optionContains(std::size_t index, sf::Vector2f point) const
 {
     return index < options_.size() && options_[index].getGlobalBounds().contains(point);

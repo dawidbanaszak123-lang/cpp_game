@@ -2,6 +2,7 @@
 
 namespace dungeon {
 
+// Tworzy zwykły pocisk wystrzelony przez gracza.
 Projectile makePlayerProjectile(sf::Vector2f origin, sf::Vector2f direction, float damageAmount)
 {
     Projectile projectile;
@@ -15,6 +16,7 @@ Projectile makePlayerProjectile(sf::Vector2f origin, sf::Vector2f direction, flo
     return projectile;
 }
 
+// Tworzy zwykły pocisk wystrzelony przez przeciwnika.
 Projectile makeEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction)
 {
     Projectile projectile;
@@ -28,6 +30,7 @@ Projectile makeEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction)
     return projectile;
 }
 
+// Tworzy wolniejszy i mocniejszy pocisk przeciwnika.
 Projectile makeHeavyEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction)
 {
     Projectile projectile;
@@ -41,6 +44,7 @@ Projectile makeHeavyEnemyProjectile(sf::Vector2f origin, sf::Vector2f direction)
     return projectile;
 }
 
+// Tworzy pocisk bazooki, który potem wybucha.
 Projectile makeBazookaProjectile(sf::Vector2f origin, sf::Vector2f direction)
 {
     Projectile projectile;
@@ -54,6 +58,7 @@ Projectile makeBazookaProjectile(sf::Vector2f origin, sf::Vector2f direction)
     return projectile;
 }
 
+// Tworzy krótki strzał laserowy gracza.
 Projectile makeLaserShot(sf::Vector2f origin, sf::Vector2f direction)
 {
     Projectile projectile;
